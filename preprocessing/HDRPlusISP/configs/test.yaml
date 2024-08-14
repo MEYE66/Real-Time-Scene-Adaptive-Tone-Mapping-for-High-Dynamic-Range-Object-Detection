@@ -1,0 +1,55 @@
+module_enable_status:                 # do NOT modify modules order
+  dpc: True
+  blc: True
+  aaf: True
+  awb: True
+  cfa: True
+  ltm: True
+  gtm: True
+  gac: True
+  # heq: True
+  eeh: True
+
+
+hardware:
+  raw_width: 2880
+  raw_height: 1856
+  bayer_pattern: rggb
+  raw_bit_depth: 24
+  rgb_bit_depth: 8
+
+
+# -------------------- Module Algorithms Parameters --------------------
+dpc:
+  diff_threshold: 30
+blc:
+  bl_r: 0
+  bl_gr: 0
+  bl_gb: 0
+  bl_b: 0
+  alpha: 0
+  beta: 0
+
+aaf: ~
+awb: ~
+cfa:
+  mode: malvar
+
+gac:
+  mode: gtm
+heq:
+  mode: he
+
+
+
+ltm: ~
+gtm:
+  contrast_gain: 0.01
+
+eeh:
+  sharpen_sigmas: [1, 2, 4]
+  sharpen_amounts: [1, 0.5, 0.5]
+  sharpen_thresholds: [0.02, 0.04, 0.06]
+
+
+
