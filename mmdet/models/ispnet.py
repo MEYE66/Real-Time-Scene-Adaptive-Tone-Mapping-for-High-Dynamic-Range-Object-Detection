@@ -281,7 +281,6 @@ if __name__ == '__main__':
     # model = LiteISPNet(num_in_ch=1,)
     # out = model(x)
     # print(out.shape)
-
-    inference_latency_gpu(model, x)
-
+    model_computation(model, x)
+    # inference_latency_gpu(model, x)
 
