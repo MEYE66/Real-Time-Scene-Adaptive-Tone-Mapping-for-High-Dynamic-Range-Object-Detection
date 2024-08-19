@@ -1,5 +1,7 @@
 
 Optimized Preprcessor for HDR Object Detection
+## Todos
+Modify HDR plus finish pipeline to accept 24bit raw input
 
 # Code Usage
 
