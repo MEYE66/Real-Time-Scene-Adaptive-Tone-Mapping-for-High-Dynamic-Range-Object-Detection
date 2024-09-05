@@ -38,19 +38,19 @@ if __name__ == '__main__':
 
 
     data_8 = minmax_norm(data_8)
-    data_16 = minmax_norm(data_16) ** (1/1.5)
+    data_16 = minmax_norm(data_16)
     data_24 = minmax_norm(data_24) ** (1/2.9)
 
     # pltImg(data_8)
-    pltImg(data_16)
-    pltImg(data_24)
-
-
-    cv2.imwrite("./tmp_results/8bit.png", to_npimage(data_8))
-    cv2.imwrite("./tmp_results/16bit.png", to_npimage(data_16))
-    cv2.imwrite("./tmp_results/24bit.png", to_npimage(data_24))
-
-    exit(234)
+    # pltImg(data_16)
+    # pltImg(data_24)
+    #
+    #
+    # cv2.imwrite("./tmp_results/8bit.png", to_npimage(data_8))
+    # cv2.imwrite("./tmp_results/16bit.png", to_npimage(data_16))
+    # cv2.imwrite("./tmp_results/24bit.png", to_npimage(data_24))
+    #
+    # exit(234)
 
     # exit(234)
 
@@ -58,6 +58,7 @@ if __name__ == '__main__':
     # pltHist(np.log(data_all+1), bins=1024)
     # pltHist2(np.log(data_all+1))
 
+    plt.figure(figsize=(7, 4))
     mpl.rcParams['font.sans-serif'] = ['Times New Roman']  # 设置matplotlib整体用Times New Roman
     # mpl.rcParams['font.weight'] = 'bold'  # 设置matplotlib整体用Times New Roman
     # mpl.rcParams['font.size'] = 26  # 设置matplotlib整体用Times New Roman
@@ -68,16 +69,15 @@ if __name__ == '__main__':
     plt.bar(bin_edges[:-1], hist, width=0.1,linewidth=1.5, color='royalblue', alpha=1)
     # plt.legend(loc='upper right')
     # plt.ylim((0, 12))
+    plt.xlabel("Luminance in Log-scale")
+    plt.ylabel("Pixel Number")
 
-    plt.xlim(right=15)
-    plt.grid(visible=True, axis='both')
+    plt.xlim(left=0, right=17.3)
+    # plt.grid(visible=True, axis='both')
     # plt.grid(axis='x')
     plt.savefig("./tmp_results/log_hist.png", bbox_inches='tight', dpi=300)
-
     plt.show()
 
-
-    print()
 
 
     pass

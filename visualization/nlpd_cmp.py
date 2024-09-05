@@ -103,13 +103,14 @@ def build_params():
     return params
 
 
-# def plot_(image):
-#     ### LDR data
-#     data_path = os.path.join(root_path, image_path)
-#     data = np.load(data_path).astype(np.float32)
-#     data = cv2.cvtColor(data, cv2.COLOR_RGB2GRAY)
-#     data_int = int_norm(data)
-#     pltHist(data_int, range=(0, 256), bins=256)
+
+def calibrate(image, smax, smin):
+    image = (smax - smin) * image + smin
+    # image = minmax_norm(image)
+    return image
+
+
+
 
 
 
@@ -120,18 +121,19 @@ def main():
     image_path = "day-06050.npy"
 
 
-    root_path = "/home/gongzheli/workspace/DAT-main/TMO_CAN-master/results/dualcan/"
-    image_path = "day-06050.npy.png"
+    # root_path = "/home/gongzheli/workspace/DAT-main/TMO_CAN-master/results/dualcan/"
+    # image_path = "day-06050.npy.png"
 
 
     # ### LDR data
     data_path = os.path.join(root_path, image_path)
-    # data = np.load(data_path).astype(np.float32)
-    data = cv2.imread(data_path, cv2.IMREAD_UNCHANGED)
+    data = np.load(data_path).astype(np.float32)
+    # data = cv2.imread(data_path, cv2.IMREAD_UNCHANGED)
     data = minmax_norm(data)
-    # data = cv2.cvtColor(data, cv2.COLOR_RGB2GRAY)
-    data = minmax_norm(data)
-    # data_int = int_norm(data)
+    data = cv2.cvtColor(data, cv2.COLOR_RGB2GRAY)
+    data = calibrate(data, 1e6, 10)
+    pltImg(data)
+
     filters = build_params()
     data_tensor = torch.from_numpy(data).unsqueeze(0).unsqueeze(0)
     print(data_tensor.shape, data_tensor.min(), data_tensor.max())
@@ -145,9 +147,9 @@ def main():
         img_np = minmax_norm(img_np)
         img_np = np.clip(img_np*255, 0, 255).astype(np.uint8)
         pltImg(img_np)
-        flag = cv2.imwrite(f"./tmp_results/out_{image_path}_{idx}.png", img_np)
-        print(flag)
-    flag = cv2.imwrite(f"./tmp_results/out_{image_path}.png", to_npimage(data))
+        # flag = cv2.imwrite(f"./tmp_results/out_{image_path}_{idx}.png", img_np)
+        # print(flag)
+    # flag = cv2.imwrite(f"./tmp_results/out_{image_path}.png", to_npimage(data))
 
     return
 

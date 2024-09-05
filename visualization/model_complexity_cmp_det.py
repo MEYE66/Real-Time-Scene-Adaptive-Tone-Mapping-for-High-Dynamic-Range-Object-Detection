@@ -1,17 +1,31 @@
 def main():
     import matplotlib.pyplot as plt
-
-
     # parameter cluster:
-    # <50: TMO, ReconfigISP, SCI
-    # 5-100:Ours, Zero-DCE,
-    # 100-300:IANet, RAODNet
-    # 1M+: AnscombeISP
 
     fig, ax = plt.subplots(figsize=(15, 10))
     radius = 9.5
     notation_size = 25
-    '''0 - 10'''
+
+    ##### x-axis:   inference latency
+    ##### y-axis:   map-detection performance
+
+    ################# for gpu  time
+    #  IANet, RAODNet,ZeroDCE, SCI, DiffISP, AnscombeNet  Ours
+    x = [10.4, 15.3, 29.8, 64.32, 89, 123, 32.7]
+    y = [32.2, 46.1, 24.8, 22.4, 26.8, 42.1, 54.9]
+    area = (30) * radius**2
+    ax.scatter(x, y, s=area, alpha=0.8, marker='.', c='#4D96FF', edgecolors='white', linewidths=2.0) # represent params
+    plt.annotate('IA-ISPNet(GPU)', (10.5 + 0, 32.3 + 2), fontsize=notation_size)
+    plt.annotate('RAOD-ISPNet(GPU)', (15.3-60, 46.1 - 3.5), fontsize=notation_size)
+    plt.annotate('Zero-DCE++(GPU)', (29.8-60, 24.8 - 3.5), fontsize=notation_size)
+    plt.annotate('SCI(GPU)', (64.32-60, 22.4 - 3.5), fontsize=notation_size)
+    plt.annotate('ReconfigISP(GPU)', (89 - 70, 26.8 + 0.10), fontsize=notation_size)
+    plt.annotate('AnscombeNet(GPU)', (123 - 70, 42.1 + 0.10), fontsize=notation_size)
+    plt.annotate('Our(GPU)s', (32.7 - 70, 54.9 + 0.10), fontsize=notation_size)
+
+
+
+    ############## for cpu time
     # HDRPlus ISP
     x = [2100]
     y = [49.5]
@@ -19,7 +33,6 @@ def main():
     ax.scatter(x, y, s=area, alpha=0.8, marker='.', c='#4D96FF', edgecolors='white', linewidths=2.0)
     plt.annotate('HDR ISP', (2300 - 150, 49.5 + 1), fontsize=notation_size)
 
-    '''<50k'''
     # CLAHE, Manituke, SCI, ReconfigISP
     x = [660, 402, 1831, 1290]
     y = [50.5, 48.5, 22.4, 42.1]
@@ -27,46 +40,9 @@ def main():
     ax.scatter(x, y, s=area, alpha=1.0, marker='.', c='#4D96FF', edgecolors='white', linewidths=2.0)
     plt.annotate('CLAHE', (270 - 70, 50.5 + 1), fontsize=notation_size)
     plt.annotate('Manituke', (302+30 , 48.5 + 1), fontsize=notation_size)
-    plt.annotate('SCI', (1831 - 70, 22.4 +1), fontsize=notation_size)
-    plt.annotate('ReconfigISP', (1290 - 75, 42.1 + 1), fontsize=notation_size)
 
 
-    '''50 - 100k'''
-    # Zero-DCE, Ours
-    x = [1105, 931]
-    y = [24.8, 54.1]
-    area = (30) * radius**2
-    ax.scatter(x, y, s=area, alpha=0.3, marker='.', c='#FFD93D', edgecolors='white', linewidths=2.0)
-    plt.annotate('Zero-DCE', (1105 - 90, 24.8 +1), fontsize=notation_size)
-    plt.annotate('Ours', (931 - 70, 51.1 + 0.10), fontsize=notation_size)
-
-    '''100 - 300k'''
-    # IANet,RAODNet
-    x = [230, 335]
-    y = [32.3, 46.1]
-    area = (164) * radius**2
-    ax.scatter(x, y, s=area, alpha=0.6, marker='.', c='#95CD41', edgecolors='white', linewidths=2.0)
-    plt.annotate('IA-ISPNet', (150 + 0, 32.3 + 2), fontsize=notation_size)
-    plt.annotate('RAOD-ISPNet', (335-60 , 46.1 - 3.5), fontsize=notation_size)
-
-    '''Ours '''
-    x = [931]
-    y = [54.1]
-    area = (50) * radius**2
-    ax.scatter(x, y, alpha=1.0, marker='*', c='r', s=300)
-    # ax.scatter(x, y, s=area, alpha=0.8, marker='.', c='#4D96FF', edgecolors='white', linewidths=2.0)
-    plt.annotate('Ours', (931 - 70, 51.1 + 0.10), fontsize=notation_size)
-
-
-    # AnscomebeNet,  1M+
-    x = [340]
-    y = [26.6]
-    area = 500 * radius**2
-    ax.scatter(x, y, s=area, alpha=0.8, marker='.', c='#EAE7C6', edgecolors='white', linewidths=2.0)
-    plt.annotate('AnscomebeNet', (340 - 20, 26.6 + 4), fontsize=notation_size)
-
-    # plt.xlim(0, 800)
-    plt.xlim(100, 3000, auto=True)
+    plt.xlim(0, 3000, auto=True)
     plt.ylim(20,  auto=True)
     plt.xlabel('Inference Latency(ms)', fontsize=35)
     plt.ylabel('mAP', fontsize=35)
