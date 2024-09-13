@@ -33,6 +33,18 @@ def load_raw(path):
 
 
 
+def load_raw_video(path):
+    raw = np.fromfile(path, dtype=np.uint8)
+    raw = raw.reshape(1856, 2880, 3).astype(np.float32)
+    raw = np.split(raw, 3, axis=2)
+    raw = (raw[0] + raw[1] * BIT8 + raw[2] * BIT16) # shape [1856, 2880, 1]
+    # raw = minmax_norm(raw).astype(np.float32)
+    raw = np.squeeze(raw).astype(np.int64)
+    # return (raw / (BIT24 - 1)).astype(np.float32)  # norm to range [0, 1]
+    return raw
+
+
+
 def func(input_path, out_path, isp_func):
     raw_image = load_raw(input_path)
     # raw_image = cv2.imread(input_path, cv2.IMREAD_UNCHANGED)

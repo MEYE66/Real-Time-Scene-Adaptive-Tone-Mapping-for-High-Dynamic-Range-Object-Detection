@@ -1,9 +1,8 @@
 import enum
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = os.environ.get('CUDA_VISIBLE_DEVICES', '9')
+# os.environ['CUDA_VISIBLE_DEVICES'] = os.environ.get('CUDA_VISIBLE_DEVICES', '9')
 import cv2
-import gzip
 import shutil
 import argparse
 import numpy as np
@@ -257,13 +256,9 @@ def func(filename, debayer, out_path):
     img = np.clip(im, 0, BIT24 - 1).astype(np.int32)
     # img = (img - img.min())/(img.max()-img.min()).astype(np.float32)
 
-
-
     save_path = os.path.join(out_path, os.path.basename(filename))
     # np.save(save_path.replace('.raw', '.npy'), img)
     cv2.imwrite(save_path.replace('.raw', '.tiff'), img)
-    
-    
     # with gzip.GzipFile(save_path.replace('.raw', '.npy.gz'), 'w') as f:
     #     np.save(file=f, arr=im)
 

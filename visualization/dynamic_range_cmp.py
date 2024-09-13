@@ -9,7 +9,6 @@ import matplotlib as mpl
 BIT8, BIT16, BIT24 = 2 ** 8, 2 ** 16, 2 ** 24
 
 
-
 if __name__ == '__main__':
 
     root_path = "/mnt/data1/RoD/RAW"
@@ -58,7 +57,7 @@ if __name__ == '__main__':
     # pltHist(np.log(data_all+1), bins=1024)
     # pltHist2(np.log(data_all+1))
 
-    plt.figure(figsize=(7, 4))
+    plt.figure(figsize=(6, 3))
     mpl.rcParams['font.sans-serif'] = ['Times New Roman']  # 设置matplotlib整体用Times New Roman
     # mpl.rcParams['font.weight'] = 'bold'  # 设置matplotlib整体用Times New Roman
     # mpl.rcParams['font.size'] = 26  # 设置matplotlib整体用Times New Roman
@@ -66,7 +65,7 @@ if __name__ == '__main__':
 
     log_data = np.log(data_all+1)
     hist, bin_edges = np.histogram(log_data,  bins=256)
-    plt.bar(bin_edges[:-1], hist, width=0.1,linewidth=1.5, color='royalblue', alpha=1)
+    plt.bar(bin_edges[:-1], hist, width=0.1,linewidth=1.5, color='dimgray', alpha=1)
     # plt.legend(loc='upper right')
     # plt.ylim((0, 12))
     plt.xlabel("Luminance in Log-scale")
@@ -75,9 +74,8 @@ if __name__ == '__main__':
     plt.xlim(left=0, right=17.3)
     # plt.grid(visible=True, axis='both')
     # plt.grid(axis='x')
-    plt.savefig("./tmp_results/log_hist.png", bbox_inches='tight', dpi=300)
+    plt.savefig("./tmp_results/log_hist.png", bbox_inches='tight',pad_inches=0.05, dpi=900)
+
     plt.show()
-
-
 
     pass

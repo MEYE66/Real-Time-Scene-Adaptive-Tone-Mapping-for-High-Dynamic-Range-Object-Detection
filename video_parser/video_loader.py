@@ -196,9 +196,9 @@ def gtm(img, eps=1e-6, param=0.5):
 debayer = Debayer3x3()
 
 
-def rawLoad(raw, input_size=(1280,1280), float_out=True):
+def rawLoad(raw, input_size=(1280, 1280), float_out=True):
     raw = np.squeeze(raw)
-    raw = (raw[0::3] + raw[1::3] * BIT8 + raw[2::3] * BIT16) # shape [1856, 2880, 1]
+    # raw = (raw[0::3] + raw[1::3] * BIT8 + raw[2::3] * BIT16) # shape [1856, 2880, 1]
     raw = raw.reshape(*input_size).astype(np.int32)
     if float_out:
         # raw = minmax_norm(raw)
@@ -208,25 +208,22 @@ def rawLoad(raw, input_size=(1280,1280), float_out=True):
 
 
 def easyISP(raw_data):
-    img = rawLoad(raw_data, input_size=(1, 1, 720, 1280), float_out=True)  #1280 × 720
+    # img = rawLoad(raw_data, input_size=(1, 1, 1280, 720), float_out=True)  #1280 × 720
     # img = rawLoad(raw_data, input_size=(720, 1280), float_out=True)  #1280 × 720
 
     # for .raw type
-    # img = raw_data
-    # img = torch.from_numpy(img).float().unsqueeze(0).unsqueeze(0)
-
+    # img = minmax_norm(raw_data)
+    img = raw_data / (BIT24 - 1)
+    img = torch.from_numpy(img).float().unsqueeze(0).unsqueeze(0)
     # for .avi type
-    img = torch.from_numpy(img).float()
-    #
+    # img = torch.from_numpy(img).float()
     img = debayer(img)
     img = img.squeeze().permute(1, 2, 0).cpu().numpy()
     # img = Malvar_demosaic(img)
-
     # img[:, :, 1] = img[:, :, 1]
     out = gray_awb(img)
     out = gtm(out)
-
-    # out = minmax_norm(out)
+    out = minmax_norm(out)
     return out
 
 
@@ -238,7 +235,7 @@ def saveImage(image_path, image):
 
 def pltImg(img):
     plt.figure()
-    plt.imshow(img)
+    plt.imshow(img, cmap='gray')
     plt.show()
 
 
@@ -280,36 +277,52 @@ def video_main():
 
 
 
-def raw_hdr_video():
-    data_path = "/mnt/data1/hdr_video/raw_data/LUCID_TRI054S-C_222503282__20240825155853743_video1.raw"  # 123
-    raw_data = np.fromfile(data_path, dtype=np.uint8)
 
-    # print(917913600/(720*1280))
+
+
+
+def raw_hdr_video():
+    # data_path = "/mnt/data1/hdr_video/raw_data/LUCID_TRI054S-C_222503282__20240825155853743_video1.raw"  # 123
+
+    data_path = "/home/gongzheli/data/hdr_video/raw_data/LUCID_TRI054S-C_222503282__20240913172020827_video0.raw" # 1480
+    save_path = "/home/gongzheli/data/hdr_video/video0_frames/"
+    # data_path = "/home/gongzheli/data/hdr_video/raw_data/LUCID_TRI054S-C_222503282__20240913172338441_video1.raw" # 1482
+
+
+    raw_data = np.fromfile(data_path, dtype=np.uint8)
+    # print(4091904000/(1280*720)/3)
     # print(113356800/(720*1280))
     # exit(234)
-    img_shape = (123, 720, 1280)
+    frames = (raw_data.shape)[0] / (1280*720) // 3
+    frames = int(frames)
+    print(f"FPS:{frames}")
+
+    img_shape = (frames, 720, 1280)
     raw_data = raw_data[0::3] + raw_data[1::3] * BIT8 + raw_data[2::3] * BIT16  # 305971200
     raw_data = raw_data.reshape(img_shape).astype(np.float32)
     print(raw_data.shape)
 
-    for i in range(123):
+    # raw_img = raw_data[0, :, :]
+    # hists, bins = np.histogram(raw_img, bins=frames)
+    # plt.hist(raw_img, bins=256)
+    # plt.show()
+    # exit(243)
+    for i in range(frames):
         img_test = raw_data[i, :, :]
-        # print(img_test.shape)
-        # out = easyISP(img_test)
-        out = minmax_norm(img_test)
+        out = easyISP(img_test)
+        # print(out.min(), out.max())
+        out = minmax_norm(out)
         out = np.clip(out * 255, 0, 255).astype(np.uint8)
-        cv2.imwrite(f"/mnt/data1/hdr_video/save_data/video1raw/{i}.png", out)
+        cv2.imwrite(f"{save_path}/{i}.png", cv2.cvtColor(out, cv2.COLOR_RGB2BGR))
         # pltImg(out)
-        pltImg(img_test)
-        if i > 20:
-            break
-        i += 1
+        # pltImg(img_test)
+        # if i > 15:
+        #     break
+        # i += 1
 
 
 
 
 if __name__ == '__main__':
-    video_main()
-
-
-    # data_path = "/mnt/data1/hdr_video/raw_data/LUCID_TRI054S-C_222503282__20240825155553368_video0.raw" # 332
+    # print(1401//3)
+    raw_hdr_video()
