@@ -23,7 +23,7 @@ def gamma(image, gamma=2.2):
 def load_hdr_raw(file_path, img_shape=(1856, 2880), read_type=np.uint8):
     raw_data = np.fromfile(file_path, dtype=read_type)
     raw_data = raw_data[0::3] + raw_data[1::3] * BIT8 + raw_data[2::3] * BIT16
-    raw_data = raw_data.reshape(img_shape).astype(np.float32)
+    raw_data = raw_data.reshape(img_shape).astype(np.int32)
     return raw_data
 
 

@@ -15,7 +15,8 @@ plt.rcParams["font.family"] = "Times New Roman"
 
 def pltImg(img):
     plt.figure()
-    plt.imshow(img, cmap='gray')
+    # plt.imshow(img, cmap='gray')
+    plt.imshow(img)
     plt.show()
 
 
@@ -79,6 +80,7 @@ if __name__ == '__main__':
     # night-15648.png
     # night-15594.png
     root_path = "/home/gongzheli/workspace/HDRPreprocessor-Detection/visualization/det_results/"
+    # root_path = "/home/gongzheli/workspace/supp/day/2/"
     method_paths = ['ours', 'isp', 'clahe', 'raodnet', 'zero', 'man']
     # image_name = "night-15581.png"
     # crop_region = [(700, 300), (900, 500)]
@@ -86,15 +88,30 @@ if __name__ == '__main__':
     # image_name = "day-05137.png"
     # crop_region = [(270, 300), (470, 500)]
 
-    image_name = "night-15648.png"
-    crop_region = [(1080, 500), (1280, 700)]
+    # image_name = "night-15648.png"
+    # crop_region = [(1080, 500), (1280, 700)]
+
+    # image_name = "day-05267.png"
+    # crop_region = [(250, 500), (450, 700)]   # 200x200
+
+    image_name = "day-05825.png"
+    crop_region = [(300, 350), (500, 550)]   # 200x200
+
+    # image_name = "night-15624.png"
+    # crop_region = [(700, 350), (900, 550)]
+
+
+    # image_name = "night-15745.png"
+    # crop_region = [(300, 550), (500, 750)]
+
 
     for i in method_paths:
         image_path = os.path.join(root_path, i, image_name)
+        print(image_path)
         image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-        # print(image.shape)
-
+        # pltImg(image)
         image_crop, image_with_rect = get_image_crop(image, crop_region)
+        # print(image.shape)
         # pltImg(image_crop)
         # pltImg(image_with_rect)
         # exit(234)

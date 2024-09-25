@@ -16,9 +16,34 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import matplotlib.pyplot as plt
+
+
 BIT8 = 2 ** 8
 BIT16 = 2 ** 16
 BIT24 = 2 ** 24
+
+
+
+# 0.081, 4.5, 1.099, 2.2
+def uGammaDecompress_(x, threshold=0.081, gainMin=5.5, gainMax=0.999, exponent=5.4):
+    # Normalize the image
+    # Check the value against the threshold
+    result = np.zeros_like(x)
+
+    mask = x <= threshold
+    result[mask] =  x[mask]/gainMin
+    result[~mask] = ((x[~mask] + gainMax - 1.) / gainMax)**exponent
+    # result = np.clip(result*(BIT24-1), 0, (BIT24-1)).astype(np.int32)
+    return result
+
+
+
+def pltImg(img):
+    plt.figure()
+    plt.imshow(img)
+    plt.show()
+
 
 
 class Layout(enum.Enum):
@@ -229,38 +254,90 @@ class Debayer5x5(torch.nn.Module):
 
 
 
+def invert_smoothstep(image):
+    """Approximately inverts a global tone mapping curve."""
+    image = image.clip(1e-8, 1.0)
+    return (0.5 - np.sin(np.arcsin(1.0 - 2.0 * image) / 3.0))
 
-def read_raw_24b(file_path, img_shape=(1, 1, 1856, 2880), read_type=np.uint8):
+
+
+def gamma_expansion(image):
+    """Converts from gamma to linear space."""
+    # Clamps to prevent numerical instability of gradients near zero.
+    return image.clip(1e-8) ** 2.2
+
+
+def safe_invert_gains(image, rgb_gain, red_gain, blue_gain):
+    """Inverts gains while safely handling saturated pixels."""
+    # assert image.ndim == 3 and image.shape[0] == 3
+    gains = np.array([1.0 / red_gain, 1.0, 1.0 / blue_gain]) / rgb_gain
+    gains = gains[:, np.newaxis, np.newaxis]  # Reshape gains for broadcasting
+
+    # Prevents dimming of saturated pixels by smoothly masking gains near white.
+    gray = image.mean(axis=0, keepdims=True)
+    inflection = 0.9
+    mask = np.clip((gray - inflection) / (1.0 - inflection), 0.0, None) ** 2.0
+
+    safe_gains = np.maximum(mask + (1.0 - mask) * gains, gains)
+    return image * safe_gains
+
+
+def minmax_norm(image):
+    return (image - image.min()) / (image.max() - image.min()).astype(np.float32)
+
+def max_norm(image):
+    return (image / (BIT24+10)).astype(np.float32)
+
+
+def read_raw_24b(file_path, img_shape=(1, 1, 1860, 2880), read_type=np.uint8):
     raw_data = np.fromfile(file_path, dtype=read_type)
     raw_data = raw_data[0::3] + raw_data[1::3] * BIT8 + raw_data[2::3] * BIT16
     raw_data = raw_data.reshape(img_shape).astype(np.float32)
-
     return raw_data
 
 
 def func(filename, debayer, out_path):
-    im = read_raw_24b(filename)
-    im = torch.from_numpy(im).cuda().float()
-
+    img = read_raw_24b(filename)
+    # for nju-hdr dataset
+    # img = minmax_norm(img)
+    # img = max_norm(img)
+    # img = np.clip(img, 0,1.0).astype(np.float32)
+    # img = img.clip(1e-8) ** 2.2
+    # img = (0.5 - np.sin(np.arcsin(1.0 - 2.0 * img) / 3.0))
+    # img = np.clip(img, 1e-8, None)
+    # img = np.squeeze(img)
+    # pltImg(img)
+    # print(img.shape, img.min(), img.max())
+    # exit(234)
+    # return
+    img = torch.from_numpy(img).cuda().float()
     with torch.no_grad():
-        im = debayer(im).detach().cpu().numpy()
+        im = debayer(img).detach().cpu().numpy()
 
     im = im.squeeze(0).transpose(1, 2, 0)
-    im = cv2.resize(im, (1280, 1280), interpolation=cv2.INTER_CUBIC)
-
-    mean_r = im[:, :, 0].mean()
-    mean_g = im[:, :, 1].mean()
-    mean_b = im[:, :, 2].mean()
+    # im = minmax_norm(im)
+    im = max_norm(im)
+    # im = safe_invert_gains(im, 1.4,1.8, 1.6)
+    # uGammaDecompress_
+    im = uGammaDecompress_(im)
+    # im = cv2.resize(im, (1280, 1280), interpolation=cv2.INTER_CUBIC)
+    mean_r = im[:, :, 0].mean().astype(np.float32)
+    mean_g = im[:, :, 1].mean().astype(np.float32)
+    mean_b = im[:, :, 2].mean().astype(np.float32)
     im[:, :, 0] *= mean_g / mean_r
     im[:, :, 2] *= mean_g / mean_b
-    img = np.clip(im, 0, BIT24 - 1).astype(np.int32)
-    # img = (img - img.min())/(img.max()-img.min()).astype(np.float32)
 
+    ### inverse gain to restore HDR details
+    # im = minmax_norm(im)
+    # im = gamma_expansion(im)
+    # im = invert_smoothstep(im)
+    # im = im * (BIT24 - 1)
+    im = np.clip(im * (BIT24 - 2), 1e-8, (BIT24 - 1)).astype(np.int32)
     save_path = os.path.join(out_path, os.path.basename(filename))
+    print(save_path)
     # np.save(save_path.replace('.raw', '.npy'), img)
-    cv2.imwrite(save_path.replace('.raw', '.tiff'), img)
-    # with gzip.GzipFile(save_path.replace('.raw', '.npy.gz'), 'w') as f:
-    #     np.save(file=f, arr=im)
+    # cv2.imwrite(save_path.replace('.raw', '.tiff'), im)
+    return im
 
 
 def main(args):
@@ -300,6 +377,7 @@ def main(args):
 
     files_out = glob(os.path.join(out_path, '*.tiff'))
     print(f'output number: {len(files_out)}')
+
 
 
 if __name__ == "__main__":

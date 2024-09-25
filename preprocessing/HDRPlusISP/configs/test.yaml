@@ -13,7 +13,7 @@ module_enable_status:                 # do NOT modify modules order
 
 hardware:
   raw_width: 2880
-  raw_height: 1856
+  raw_height: 1860
   bayer_pattern: rggb
   raw_bit_depth: 24
   rgb_bit_depth: 8
@@ -37,8 +37,8 @@ cfa:
 
 gac:
   mode: gtm
-heq:
-  mode: he
+#heq:
+#  mode: he
 
 
 

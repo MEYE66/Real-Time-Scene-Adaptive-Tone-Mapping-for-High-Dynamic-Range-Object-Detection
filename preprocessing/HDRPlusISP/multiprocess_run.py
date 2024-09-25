@@ -23,7 +23,7 @@ BIT8, BIT16, BIT24 = 2 ** 8, 2 ** 16, 2 ** 24
 
 def load_raw(path):
     raw = np.fromfile(path, dtype=np.uint8)
-    raw = raw.reshape(1856, 2880, 3).astype(np.float32)
+    raw = raw.reshape(1860, 2880, 3).astype(np.float32)
     raw = np.split(raw, 3, axis=2)
     raw = (raw[0] + raw[1] * BIT8 + raw[2] * BIT16) # shape [1856, 2880, 1]
     # raw = minmax_norm(raw).astype(np.float32)
@@ -35,7 +35,7 @@ def load_raw(path):
 
 def load_raw_video(path):
     raw = np.fromfile(path, dtype=np.uint8)
-    raw = raw.reshape(1856, 2880, 3).astype(np.float32)
+    raw = raw.reshape(1860, 2880, 3).astype(np.float32)
     raw = np.split(raw, 3, axis=2)
     raw = (raw[0] + raw[1] * BIT8 + raw[2] * BIT16) # shape [1856, 2880, 1]
     # raw = minmax_norm(raw).astype(np.float32)
@@ -51,7 +51,7 @@ def func(input_path, out_path, isp_func):
     out, _ = isp_func.execute(bayer=raw_image, save_intermediates=False, verbose=False)
     rgb_image = out['rgb_image']
     rgb_image = np.clip(rgb_image*255, 0., 255).astype(np.uint8)
-    rgb_image = cv2.resize(rgb_image, (1280, 1280), interpolation=cv2.INTER_LINEAR)
+    # rgb_image = cv2.resize(rgb_image, (1280, 1280), interpolation=cv2.INTER_LINEAR)
     save_path = os.path.join(out_path, os.path.basename(input_path))
     # print(save_path)
     cv2.imwrite(f"{save_path.replace('raw', 'tiff')}", cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR))
@@ -68,8 +68,12 @@ def main():
     # dataset path
     # in_path = "/home/lgz/data/RoD/RAWo/"
     # out_path = "/home/lgz/data/RoD/RGB"
-    in_path = "/home/ligongzhe/data/RAWo/"
-    out_path = "/home/ligongzhe/data/RAWtiff/"
+    # in_path = "/home/ligongzhe/data/RAWo/"
+    # out_path = "/home/ligongzhe/data/RAWtiff/"
+
+
+    in_path = "/mnt/data1/RhoVision/raw/"
+    out_path = "/mnt/data1/RhoVision/RGB/"
 
     shutil.rmtree(out_path, ignore_errors=True); os.makedirs(out_path)
     print(f'input  path: {in_path}')

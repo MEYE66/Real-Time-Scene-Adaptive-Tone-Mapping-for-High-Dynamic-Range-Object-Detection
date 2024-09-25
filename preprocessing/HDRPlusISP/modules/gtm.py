@@ -21,7 +21,7 @@ class GTM(BasicModule):
     def __init__(self, cfg):
         super().__init__(cfg)
         self.eps = 1e-6
-        self.param = 0.1
+        self.param = 0.05
         self.contrast_gain = cfg.gtm.contrast_gain  # [0,1.]
 
 
@@ -34,6 +34,5 @@ class GTM(BasicModule):
         image = (Lm * (1 + (Lm / (Lm_max ** 2)))) / (1 + Lm)
         # image = minmax_norm(image)
         # image = 3*np.power(image, 2) - 2*np.power(image, 3)
-
         image = np.clip(image, 0, 1.)
         data['rgb_image'] = image.astype(np.float32)

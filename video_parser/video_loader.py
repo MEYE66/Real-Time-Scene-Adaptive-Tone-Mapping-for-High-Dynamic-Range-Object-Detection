@@ -210,7 +210,6 @@ def rawLoad(raw, input_size=(1280, 1280), float_out=True):
 def easyISP(raw_data):
     # img = rawLoad(raw_data, input_size=(1, 1, 1280, 720), float_out=True)  #1280 × 720
     # img = rawLoad(raw_data, input_size=(720, 1280), float_out=True)  #1280 × 720
-
     # for .raw type
     # img = minmax_norm(raw_data)
     img = raw_data / (BIT24 - 1)
@@ -293,11 +292,11 @@ def raw_hdr_video():
     # print(4091904000/(1280*720)/3)
     # print(113356800/(720*1280))
     # exit(234)
-    frames = (raw_data.shape)[0] / (1280*720) // 3
+    frames = (raw_data.shape)[0] / (1280*1280) // 3
     frames = int(frames)
     print(f"FPS:{frames}")
 
-    img_shape = (frames, 720, 1280)
+    img_shape = (frames, 1280, 1280)
     raw_data = raw_data[0::3] + raw_data[1::3] * BIT8 + raw_data[2::3] * BIT16  # 305971200
     raw_data = raw_data.reshape(img_shape).astype(np.float32)
     print(raw_data.shape)
@@ -309,11 +308,12 @@ def raw_hdr_video():
     # exit(243)
     for i in range(frames):
         img_test = raw_data[i, :, :]
+
         out = easyISP(img_test)
         # print(out.min(), out.max())
         out = minmax_norm(out)
         out = np.clip(out * 255, 0, 255).astype(np.uint8)
-        cv2.imwrite(f"{save_path}/{i}.png", cv2.cvtColor(out, cv2.COLOR_RGB2BGR))
+        # cv2.imwrite(f"{save_path}/{i}.png", cv2.cvtColor(out, cv2.COLOR_RGB2BGR))
         # pltImg(out)
         # pltImg(img_test)
         # if i > 15:
@@ -321,8 +321,5 @@ def raw_hdr_video():
         # i += 1
 
 
-
-
 if __name__ == '__main__':
-    # print(1401//3)
     raw_hdr_video()
