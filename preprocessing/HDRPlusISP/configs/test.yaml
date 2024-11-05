@@ -4,7 +4,7 @@ module_enable_status:                 # do NOT modify modules order
   aaf: True
   awb: True
   cfa: True
-  ltm: True
+  ltm: False
   gtm: True
   gac: True
   # heq: True

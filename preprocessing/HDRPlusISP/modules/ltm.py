@@ -95,7 +95,8 @@ class LTM(BasicModule):
 		# scale each RGB channel of the short exposure accordingly
 		ltmImage = applyScaling_(image, shortGray, fusedGray)
 		# Clip values between 0 and 1
-		ltmImage = np.clip(ltmImage, 0, 1)
+		# ltmImage = np.clip(ltmImage, 0, 1)
+		# ltmImage = fusedg
 		data['rgb_image'] = ltmImage.astype(np.float32)
 
 

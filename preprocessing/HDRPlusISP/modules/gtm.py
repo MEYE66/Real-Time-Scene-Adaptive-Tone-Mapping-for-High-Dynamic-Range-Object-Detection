@@ -21,13 +21,14 @@ class GTM(BasicModule):
     def __init__(self, cfg):
         super().__init__(cfg)
         self.eps = 1e-6
-        self.param = 0.05
+        self.param = 0.1
         self.contrast_gain = cfg.gtm.contrast_gain  # [0,1.]
 
 
     def execute(self, data):
         # apply an S-shaped contrast enhancement curve
         image = data['rgb_image'].astype(np.float32)
+        image = np.clip(image / (self.cfg.saturation_values.hdr), 0, 1.).astype(np.float32)
         Lw_ave = np.exp(np.mean(np.log(self.eps + image)))
         Lm = (self.param / Lw_ave) * image
         Lm_max = np.max(Lm)

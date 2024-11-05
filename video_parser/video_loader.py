@@ -3,6 +3,7 @@
 # Description: Numpy helpers for image processing
 # Created: 2024-08-30  
 # Author: Gongzhe Li
+import enum
 import os
 import cv2
 import torch
@@ -11,12 +12,22 @@ import torch.nn.functional as F
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage.filters import convolve
-from utils import split_bayer, reconstruct_bayer, gray_world_gains
-
-
-
+from video_parser.utils import split_bayer, reconstruct_bayer, gray_world_gains
+from tqdm import tqdm
 
 BIT8,BIT16,BIT24 = 2 ** 8, 2 ** 16, 2 ** 24
+class Layout(enum.Enum):
+    """Possible Bayer color filter array layouts.
+
+    The value of each entry is the color index (R=0,G=1,B=2)
+    within a 2x2 Bayer block.
+    """
+
+    RGGB = (0, 1, 1, 2)
+    GRBG = (1, 0, 2, 1)
+    GBRG = (1, 2, 0, 1)
+    BGGR = (2, 1, 1, 0)
+
 
 
 def masks_CFA_Bayer(shape, pattern='RGGB'):
@@ -26,6 +37,64 @@ def masks_CFA_Bayer(shape, pattern='RGGB'):
         channels[channel][y::2, x::2] = 1
 
     return tuple(channels[c].astype(bool) for c in 'RGB')
+
+
+class OriginalDebayer3x3(nn.Module):
+    def __init__(self):
+        super(OriginalDebayer3x3, self).__init__()
+        self.kernels = nn.Parameter(
+            torch.tensor([
+                [0, 0.25, 0],
+                [0.25, 0, 0.25],
+                [0, 0.25, 0],
+
+                [0.25, 0, 0.25],
+                [0, 0, 0],
+                [0.25, 0, 0.25],
+
+                [0, 0, 0],
+                [0.5, 0, 0.5],
+                [0, 0, 0],
+
+                [0, 0.5, 0],
+                [0, 0, 0],
+                [0, 0.5, 0],
+            ]).view(4, 1, 3, 3), requires_grad=False
+        )
+        self.index = nn.Parameter(
+            torch.tensor([
+                # dest channel r
+                [4, 2],  # pixel is R,G1
+                [3, 1],  # pixel is G2,B
+                # dest channel g
+                [0, 4],  # pixel is R,G1
+                [4, 0],  # pixel is G2,B
+                # dest channel b
+                [1, 3],  # pixel is R,G1
+                [2, 4],  # pixel is G2,B
+            ]).view(1, 3, 2, 2), requires_grad=False
+        )
+
+    def forward(self, x):
+        B, C, H, W = x.shape
+        xpad = F.pad(x, (1, 1, 1, 1), mode='replicate')
+        c = F.conv2d(xpad, self.kernels, stride=1)
+        c = torch.cat((c, x), 1)  # Concat with input to give identity kernel Bx5xHxW
+
+        rgb = torch.gather(
+            c,
+            1,
+            self.index.repeat(
+                1,
+                1,
+                torch.div(H, 2, rounding_mode="floor"),
+                torch.div(W, 2, rounding_mode="floor"),
+            ).expand(
+                B, -1, -1, -1
+            ),  # expand in batch is faster than repeat
+        )
+        return rgb
+
 
 
 class Debayer3x3(nn.Module):
@@ -75,8 +144,149 @@ class Debayer3x3(nn.Module):
         B, C, H, W = x.shape
         x = F.pad(x, (1, 1, 1, 1), mode='replicate')
         c = F.conv2d(x, self.kernels, stride=1)
+
         rgb = torch.gather(c, 1, self.index.repeat(B, 1, H // 2, W // 2))
         return rgb
+
+
+
+
+class Debayer5x5(torch.nn.Module):
+    def __init__(self, layout: Layout = Layout.BGGR):
+        super(Debayer5x5, self).__init__()
+        self.layout = layout
+        # fmt: off
+        self.kernels = torch.nn.Parameter(
+            torch.tensor(
+                [
+                    # G at R,B locations
+                    # scaled by 16
+                    [ 0,  0, -2,  0,  0], # noqa
+                    [ 0,  0,  4,  0,  0], # noqa
+                    [-2,  4,  8,  4, -2], # noqa
+                    [ 0,  0,  4,  0,  0], # noqa
+                    [ 0,  0, -2,  0,  0], # noqa
+
+                    # R,B at G in R rows
+                    # scaled by 16
+                    [ 0,  0,  1,  0,  0], # noqa
+                    [ 0, -2,  0, -2,  0], # noqa
+                    [-2,  8, 10,  8, -2], # noqa
+                    [ 0, -2,  0, -2,  0], # noqa
+                    [ 0,  0,  1,  0,  0], # noqa
+
+                    # R,B at G in B rows
+                    # scaled by 16
+                    [ 0,  0, -2,  0,  0], # noqa
+                    [ 0, -2,  8, -2,  0], # noqa
+                    [ 1,  0, 10,  0,  1], # noqa
+                    [ 0, -2,  8, -2,  0], # noqa
+                    [ 0,  0, -2,  0,  0], # noqa
+
+                    # R at B and B at R
+                    # scaled by 16
+                    [ 0,  0, -3,  0,  0], # noqa
+                    [ 0,  4,  0,  4,  0], # noqa
+                    [-3,  0, 12,  0, -3], # noqa
+                    [ 0,  4,  0,  4,  0], # noqa
+                    [ 0,  0, -3,  0,  0], # noqa
+
+                    # R at R, B at B, G at G
+                    # identity kernel not shown
+                ]
+            ).view(4, 1, 5, 5).float() / 16.0,
+            requires_grad=False,
+        )
+        # fmt: on
+
+        self.index = nn.Parameter(
+            torch.tensor([
+                # dest channel r
+                [4, 1],  # pixel is R,G1
+                [2, 3],  # pixel is G2,B
+                # dest channel g
+                [0, 4],  # pixel is R,G1
+                [4, 0],  # pixel is G2,B
+                # dest channel b
+                [3, 2],  # pixel is R,G1
+                [1, 4],  # pixel is G2,B
+            ]).view(1, 3, 2, 2), requires_grad=False
+        )
+        self.index = torch.nn.Parameter(
+            # Below, note that index 4 corresponds to identity kernel
+            self._index_from_layout(layout),
+            requires_grad=False,
+        )
+
+    def forward(self, x):
+        """Debayer image.
+
+        Parameters
+        ----------
+        x : Bx1xHxW tensor
+            Images to debayer
+
+        Returns
+        -------
+        rgb : Bx3xHxW tensor
+            Color images in RGB channel order.
+        """
+        B, C, H, W = x.shape
+        xpad = torch.nn.functional.pad(x, (2, 2, 2, 2), mode="reflect")
+        planes = torch.nn.functional.conv2d(xpad, self.kernels, stride=1)
+        planes = torch.cat(
+            (planes, x), 1
+        )  # Concat with input to give identity kernel Bx5xHxW
+        rgb = torch.gather(
+            planes,
+            1,
+            self.index.repeat(
+                1,
+                1,
+                torch.div(H, 2, rounding_mode="floor"),
+                torch.div(W, 2, rounding_mode="floor"),
+            ).expand(
+                B, -1, -1, -1
+            ),  # expand for singleton batch dimension is faster
+        )
+        return torch.clamp(rgb, 0, 1)
+
+    def _index_from_layout(self, layout: Layout) -> torch.Tensor:
+        """Returns a 1x3x2x2 index tensor for each color RGB in a 2x2 bayer tile.
+
+        Note, the index corresponding to the identity kernel is 4, which will be
+        correct after concatenating the convolved output with the input image.
+        """
+        #       ...
+        # ... b g b g ...
+        # ... g R G r ...
+        # ... b G B g ...
+        # ... g r g r ...
+        #       ...
+        # fmt: off
+        rggb = torch.tensor(
+            [
+                # dest channel r
+                [4, 1],  # pixel is R,G1
+                [2, 3],  # pixel is G2,B
+                # dest channel g
+                [0, 4],  # pixel is R,G1
+                [4, 0],  # pixel is G2,B
+                # dest channel b
+                [3, 2],  # pixel is R,G1
+                [1, 4],  # pixel is G2,B
+            ]
+        ).view(1, 3, 2, 2)
+        # fmt: on
+        return {
+            Layout.RGGB: rggb,
+            Layout.GRBG: torch.roll(rggb, 1, -1),
+            Layout.GBRG: torch.roll(rggb, 1, -2),
+            Layout.BGGR: torch.roll(rggb, (1, 1), (-1, -2)),
+        }.get(layout)
+
+
+
 
 
 def Malvar_demosaic(CFA, pattern='RGGB'):
@@ -166,7 +376,7 @@ def gray_awb(image):
     mean_b = np.mean(image[:, :, 2])
     image[:, :, 0] *= mean_g / mean_r
     image[:, :, 2] *= mean_g / mean_b
-    image = np.clip(image, 0, 1.)
+    # image = np.clip(image, 0, 1.)
     return image
 
 
@@ -185,6 +395,7 @@ def white_awb(image):
 
 
 def gtm(img, eps=1e-6, param=0.5):
+    img = minmax_norm(img)
     Lw_ave = np.exp(np.mean(np.log(eps + img)))
     Lm = (param / Lw_ave) * img
     Lm_max = np.max(Lm)
@@ -193,7 +404,6 @@ def gtm(img, eps=1e-6, param=0.5):
     return out
 
 
-debayer = Debayer3x3()
 
 
 def rawLoad(raw, input_size=(1280, 1280), float_out=True):
@@ -205,25 +415,23 @@ def rawLoad(raw, input_size=(1280, 1280), float_out=True):
         raw = (raw / (BIT24-1))
     return raw
 
+# debayer = Debayer3x3()
+# debayer = OriginalDebayer3x3()
+debayer = Debayer5x5()
 
-
-def easyISP(raw_data):
-    # img = rawLoad(raw_data, input_size=(1, 1, 1280, 720), float_out=True)  #1280 × 720
-    # img = rawLoad(raw_data, input_size=(720, 1280), float_out=True)  #1280 × 720
-    # for .raw type
-    # img = minmax_norm(raw_data)
-    img = raw_data / (BIT24 - 1)
+def easyISP(raw_data, ):
+    img = minmax_norm(raw_data)
+    # img = raw_data / (BIT24 - 1)
+    # img = raw_data
     img = torch.from_numpy(img).float().unsqueeze(0).unsqueeze(0)
-    # for .avi type
-    # img = torch.from_numpy(img).float()
     img = debayer(img)
     img = img.squeeze().permute(1, 2, 0).cpu().numpy()
-    # img = Malvar_demosaic(img)
-    # img[:, :, 1] = img[:, :, 1]
+
     out = gray_awb(img)
+    tiff = out
     out = gtm(out)
-    out = minmax_norm(out)
-    return out
+    # out = np.clip((out*255).round(), 0, 255).astype(np.uint8)
+    return out, tiff
 
 
 
@@ -245,81 +453,62 @@ def raw_test(file_path, img_shape=(1, 1, 1860, 2880), read_type=np.uint8):
     return raw_data
 
 
-def video_main():
-    video_path = "/mnt/data1/hdr_video/raw_data/indoor.avi"
-    # video_name = os.path.basename(video_path).split('.')[0]
-    save_path = f"/mnt/data1/hdr_video/save_data/test_video6/"
-    # os.mkdir(save_path)
-    vid_capture = cv2.VideoCapture(video_path)
-    vid_capture.set(cv2.CAP_PROP_FORMAT, -1)
-    print(f"Video FPS:{vid_capture.get(cv2.CAP_PROP_FPS)}, Video Time:{vid_capture.get(cv2.CAP_PROP_FRAME_COUNT)}")
-    print(f"Total Frames: {vid_capture.get(cv2.CAP_PROP_FPS)*vid_capture.get(cv2.CAP_PROP_FRAME_COUNT)}")
-
-    cnt = 0
-    while True:
-        ret, frame = vid_capture.read()
-        # if not (cnt % 1):
-        out = easyISP(frame)
-        pltImg(out)
-        # print(img.shape)
-        # saveImage(save_path + str(cnt) + '.png', out)
-        cnt += 1
-        if cnt > 5:
-            exit(234)
-        if not ret:
-            print("Can't receive frame (stream end?). Exiting ...")
-            break
-    vid_capture.release()
-    print(f"frame num = {cnt}")
-    return
-
-
-
-
-
-
 
 
 def raw_hdr_video():
     # data_path = "/mnt/data1/hdr_video/raw_data/LUCID_TRI054S-C_222503282__20240825155853743_video1.raw"  # 123
+    # data_path = "/mnt/data1/hdr_video/raw_data/10-3/LUCID_TRI054S-C_222503282__20241003200857615_video7.raw" # 1480   school entry night
+    # data_path = "/mnt/data1/hdr_video/raw_data/10-3/LUCID_TRI054S-C_222503282__20241003200357399_video4.raw"
 
-    data_path = "/home/gongzheli/data/hdr_video/raw_data/LUCID_TRI054S-C_222503282__20240913172020827_video0.raw" # 1480
-    save_path = "/home/gongzheli/data/hdr_video/video0_frames/"
+
+    # night: f2.8-7-no-wb   night-01     LUCID_TRI054S-C_222503282__20240926221055626_video6.raw   night-02
+    # day:f2.8-1-no-wb.raw day-01    f8-1-no-wb.raw -day-02
+    data_path = "/mnt/data1/hdr_video/raw_data/10-23/f2.8-1-no-wb.raw"  # day in road
+    # data_path = "/mnt/data1/hdr_video/raw_data/10-3/f2.8-7-no-wb.raw"  # day in road
+    # data_path = "//mnt/data1/hdr_video/raw_data/hdr-videos/savedvideos/LUCID_TRI054S-C_222503282__20240926221219797_video7.raw"
+
+    save_path = "/mnt/data1/hdr_video/validation/"
+    folder = 'day-01'
+
+    rgb_path = os.path.join(save_path, 'rgb', folder)
+    tiff_path = os.path.join(save_path, 'tiff', folder)
     # data_path = "/home/gongzheli/data/hdr_video/raw_data/LUCID_TRI054S-C_222503282__20240913172338441_video1.raw" # 1482
-
-
     raw_data = np.fromfile(data_path, dtype=np.uint8)
-    # print(4091904000/(1280*720)/3)
-    # print(113356800/(720*1280))
-    # exit(234)
-    frames = (raw_data.shape)[0] / (1280*1280) // 3
+    frames = (raw_data.shape)[0] / (2880*1860) // 3
+    # frames = (raw_data.shape)[0] / (1280*1280) // 3
+
     frames = int(frames)
     print(f"FPS:{frames}")
-
-    img_shape = (frames, 1280, 1280)
+    img_shape = (frames, 1860, 2880)
+    # img_shape = (frames, 1280, 1280)
     raw_data = raw_data[0::3] + raw_data[1::3] * BIT8 + raw_data[2::3] * BIT16  # 305971200
     raw_data = raw_data.reshape(img_shape).astype(np.float32)
     print(raw_data.shape)
+    j = 0
+    # frames = raw_data[200:, :, :]
+    for i in tqdm(range(frames)):
+        img_test = raw_data[200+i, :, :]
+        # pltImg(img_test)tiff
+        # print(img_test.min(), img_test.max())
+        out, tiff = easyISP(img_test)
+        tiff = minmax_norm(tiff)
+        tiff = np.clip(tiff * (BIT24-1), 0, (BIT24-1)).astype(np.int32)
+        flag1 = cv2.imwrite(f"{tiff_path}/{200+i}_.tiff", tiff)
+        if j>70:
+            exit(234)
+        else:
+            j+=1
+        # flag1 = cv2.imwrite(f"{tiff_path}/{i}.tiff", cv2.cvtColor(tiff, cv2.COLOR_RGB2BGR))
+        # print(flag1)
+        # out = minmax_norm(out)
+        # out = np.clip(out * 255, 0, 255).astype(np.uint8)
+        # cv2.imwrite(f"{rgb_path}/{i}.png", cv2.cvtColor(out, cv2.COLOR_RGB2BGR))
 
-    # raw_img = raw_data[0, :, :]
-    # hists, bins = np.histogram(raw_img, bins=frames)
-    # plt.hist(raw_img, bins=256)
-    # plt.show()
-    # exit(243)
-    for i in range(frames):
-        img_test = raw_data[i, :, :]
-
-        out = easyISP(img_test)
-        # print(out.min(), out.max())
-        out = minmax_norm(out)
-        out = np.clip(out * 255, 0, 255).astype(np.uint8)
-        # cv2.imwrite(f"{save_path}/{i}.png", cv2.cvtColor(out, cv2.COLOR_RGB2BGR))
-        # pltImg(out)
-        # pltImg(img_test)
-        # if i > 15:
-        #     break
-        # i += 1
 
 
 if __name__ == '__main__':
     raw_hdr_video()
+
+
+
+

@@ -46,6 +46,9 @@ debayer = Debayer3x3().cuda()
 #     return raw
 
 
+
+
+
 def func(raw_image, index, out_path, isp_func):
     out, _ = isp_func.execute(bayer=raw_image, save_intermediates=False, verbose=False)
     rgb_image = out['rgb_image']
@@ -64,16 +67,13 @@ def raw_func(raw_image, index, out_path, isp_func):
         im = debayer(im).detach().cpu().numpy()
 
     im = im.squeeze(0).transpose(1, 2, 0)
-    im = cv2.resize(im, (1280, 1280), interpolation=cv2.INTER_CUBIC)
-
+    # im = cv2.resize(im, (1280, 1280), interpolation=cv2.INTER_CUBIC)
     mean_r = im[:, :, 0].mean()
     mean_g = im[:, :, 1].mean()
     mean_b = im[:, :, 2].mean()
     im[:, :, 0] *= mean_g / mean_r
     im[:, :, 2] *= mean_g / mean_b
     img = np.clip(im, 0, BIT24 - 1).astype(np.int32)
-
-
     save_path = os.path.join(out_path, str(index)+'.tiff')
     # cv2.imwrite(f"{save_path}", cv2.cvtColor(raw_image, cv2.COLOR_RGB2BGR))
     cv2.imwrite(f"{save_path}",  img)
@@ -86,22 +86,25 @@ def main():
     cfg = Config(config_path)
     isp_pipeline = Pipeline(cfg)
 
-    # dataset path
-    in_path = "/mnt/data1/hdr_video/raw_data/day_exit/LUCID_TRI054S-C_222503282__20240917150404272_video7.raw"
-    # out_path = f"/mnt/data1/hdr_video/raw/video0_frames"  # raw path
-    out_path = f"/mnt/data1/hdr_video/rgb/{os.path.basename(in_path)}"  # rgb path
-
+    root_path = "/mnt/data1/hdr_video/raw_data/9-28/"
+    # for root in os.listdir(root_path):
+        # print(root)
+    # exit(234)
+        # dataset path
+    in_path = "/mnt/data1/hdr_video/raw_data/10-3/LUCID_TRI054S-C_222503282__20241003200357399_video4.raw"
+    # in_path = f"/mnt/data1/hdr_video/raw_data/9-28/{root}"
+    out_path = f"/mnt/data1/hdr_video/rgb/marval-{os.path.basename(in_path)}"  # raw path
     # shutil.rmtree(out_path, ignore_errors=True);
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     print(f'input  path: {in_path}')
     print(f'output path: {out_path}')
-    input_size = (1280, 1280)
+    input_size = (1860, 2880)
     raw_videos = np.fromfile(in_path, dtype=np.uint8)
     frames = (raw_videos.shape)[0] / (input_size[0]*input_size[1]) // 3
     frames = int(frames)
 
-    img_shape = (frames, 1280, 1280)
+    img_shape = (frames, 1860, 2880)
     raw_data = raw_videos[0::3] + raw_videos[1::3] * BIT8 + raw_videos[2::3] * BIT16  # 305971200
     raw_data = raw_data.reshape(img_shape).astype(np.float32)
     print(f'{frames} raw images found')

@@ -6,6 +6,8 @@
 import numpy as np
 from .basic_module import BasicModule
 from .helpers import pad, split_bayer, reconstruct_bayer, shift_array
+
+BIT24 = 2**24
 class CFA(BasicModule):
     def __init__(self, cfg):
         super().__init__(cfg)
@@ -31,7 +33,7 @@ class CFA(BasicModule):
         )
 
         for i_and_w in self.channel_indices_and_weights:
-            i_and_w[1] = [int(1024 * w) for w in i_and_w[1]]  # x1024
+            i_and_w[1] = [int(BIT24 * w) for w in i_and_w[1]]  # x1024
 
     def rotate_to_rggb(self, array):
         k = {'rggb': 0,
@@ -60,6 +62,8 @@ class CFA(BasicModule):
             self.execute_bilinear(data)
         elif self.params.mode.lower() == 'malvar':
             self.execute_malvar(data)
+        elif self.params.mode.lower() == 'debayer':
+            self.execute_debayer(data)
         else:
             raise NotImplementedError
 
@@ -109,8 +113,8 @@ class CFA(BasicModule):
         ])
         rgb_image = self.rotate_from_rggb(rgb_image)
         rgb_image = np.clip(rgb_image, 0, self.cfg.saturation_values.hdr)
+        data['rgb_image'] = rgb_image.astype(np.uint32)
 
-        data['rgb_image'] = rgb_image.astype(np.uint16)
 
     def execute_malvar(self, data):
         bayer = data['bayer'].astype(np.int64)
@@ -130,46 +134,46 @@ class CFA(BasicModule):
         g_on_r = np.right_shift(
             self.index_weighted_sum(shifted_r, *self.channel_indices_and_weights[0]) +
             self.index_weighted_sum(shifted_gr, *self.channel_indices_and_weights[4]) +
-            self.index_weighted_sum(shifted_gb, *self.channel_indices_and_weights[5]), 10
+            self.index_weighted_sum(shifted_gb, *self.channel_indices_and_weights[5]), 24
         )
         b_on_r = np.right_shift(
             self.index_weighted_sum(shifted_r, *self.channel_indices_and_weights[1]) +
-            self.index_weighted_sum(shifted_b, *self.channel_indices_and_weights[13]), 10
+            self.index_weighted_sum(shifted_b, *self.channel_indices_and_weights[13]), 24
         )
 
         # ---------------- Gr-plane ----------------
         r_on_gr = np.right_shift(
             self.index_weighted_sum(shifted_r, *self.channel_indices_and_weights[8]) +
             self.index_weighted_sum(shifted_gr, *self.channel_indices_and_weights[2]) +
-            self.index_weighted_sum(shifted_gb, *self.channel_indices_and_weights[15]), 10
+            self.index_weighted_sum(shifted_gb, *self.channel_indices_and_weights[15]), 24
         )
         b_on_gr = np.right_shift(
             self.index_weighted_sum(shifted_b, *self.channel_indices_and_weights[10]) +
             self.index_weighted_sum(shifted_gr, *self.channel_indices_and_weights[3]) +
-            self.index_weighted_sum(shifted_gb, *self.channel_indices_and_weights[15]), 10
+            self.index_weighted_sum(shifted_gb, *self.channel_indices_and_weights[15]), 24
         )
 
         # ---------------- Gb-plane ----------------
         r_on_gb = np.right_shift(
             self.index_weighted_sum(shifted_r, *self.channel_indices_and_weights[11]) +
             self.index_weighted_sum(shifted_gr, *self.channel_indices_and_weights[16]) +
-            self.index_weighted_sum(shifted_gb, *self.channel_indices_and_weights[3]), 10
+            self.index_weighted_sum(shifted_gb, *self.channel_indices_and_weights[3]), 24
         )
         b_on_gb = np.right_shift(
             self.index_weighted_sum(shifted_b, *self.channel_indices_and_weights[12]) +
             self.index_weighted_sum(shifted_gr, *self.channel_indices_and_weights[16]) +
-            self.index_weighted_sum(shifted_gb, *self.channel_indices_and_weights[2]), 10
+            self.index_weighted_sum(shifted_gb, *self.channel_indices_and_weights[2]), 24
         )
 
         # ---------------- B-plane ----------------
         r_on_b = np.right_shift(
             self.index_weighted_sum(shifted_r, *self.channel_indices_and_weights[14]) +
-            self.index_weighted_sum(shifted_b, *self.channel_indices_and_weights[1]), 10
+            self.index_weighted_sum(shifted_b, *self.channel_indices_and_weights[1]), 24
         )
         g_on_b = np.right_shift(
             self.index_weighted_sum(shifted_gr, *self.channel_indices_and_weights[6]) +
             self.index_weighted_sum(shifted_gb, *self.channel_indices_and_weights[7]) +
-            self.index_weighted_sum(shifted_b, *self.channel_indices_and_weights[0]), 10
+            self.index_weighted_sum(shifted_b, *self.channel_indices_and_weights[0]), 24
         )
 
         # ---------------- Reconstruction ----------------
@@ -184,7 +188,8 @@ class CFA(BasicModule):
         data['rgb_image'] = rgb_image.astype(np.uint32)
 
 
-
+    def execute_debayer(self, data):
+        return data
 
 
 

@@ -27,15 +27,31 @@ class FasterRCNN(TwoStageDetector):
             init_cfg=init_cfg,
             data_preprocessor=data_preprocessor)
 
-        freeze = True
-        if freeze:
-            for name, param in self.backbone.named_parameters():
-                # print(name)
-                if name.split('.')[0] == 'isp_preprocessor':
-                    param.require_grad = False     
-                # exit(234)
-            for name, param in self.rpn_head.named_parameters():
-                param.require_grad = False 
-                
-            for name, param in self.rpn_head.named_parameters():
-                param.require_grad = False  
+        # freeze = True
+        # if freeze:
+        #     for name, param in self.backbone.named_parameters():
+        #         # print(name)
+        #         if name.split('.')[0] == 'isp_preprocessor':
+        #             param.require_grad = False
+        #         # exit(234)
+        #     for name, param in self.rpn_head.named_parameters():
+        #         param.require_grad = False
+
+        #     for name, param in self.rpn_head.named_parameters():
+        #         param.require_grad = False
+
+        # print("!" * 10, "Counting Start", "!" * 10)
+        # import numpy as np
+        #
+        # params = 0
+        # model_parameters = filter(lambda p: p.requires_grad, slef.backbone.parameters())
+        # params += sum([np.prod(p.size()) for p in model_parameters])
+        #
+        # model_parameters = filter(lambda p: p.requires_grad, slef.rpn_head.parameters())
+        # params += sum([np.prod(p.size()) for p in model_parameters])
+        #
+        # model_parameters = filter(lambda p: p.requires_grad, slef.roi_head.parameters())
+        # params += sum([np.prod(p.size()) for p in model_parameters])
+        #
+        # print("!" * 10, "Counting End", "!" * 10)
+        # exit(234)
