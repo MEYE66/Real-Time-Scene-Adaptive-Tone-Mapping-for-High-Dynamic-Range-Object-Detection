@@ -426,8 +426,8 @@ def easyISP(raw_data, ):
     img = torch.from_numpy(img).float().unsqueeze(0).unsqueeze(0)
     img = debayer(img)
     img = img.squeeze().permute(1, 2, 0).cpu().numpy()
-
     out = gray_awb(img)
+    return out
     tiff = out
     out = gtm(out)
     # out = np.clip((out*255).round(), 0, 255).astype(np.uint8)
@@ -461,21 +461,24 @@ def raw_hdr_video():
     # data_path = "/mnt/data1/hdr_video/raw_data/10-3/LUCID_TRI054S-C_222503282__20241003200357399_video4.raw"
 
 
-    # night: f2.8-7-no-wb   night-01     LUCID_TRI054S-C_222503282__20240926221055626_video6.raw   night-02
-    # day:f2.8-1-no-wb.raw day-01    f8-1-no-wb.raw -day-02
-    data_path = "/mnt/data1/hdr_video/raw_data/10-23/f2.8-1-no-wb.raw"  # day in road
-    # data_path = "/mnt/data1/hdr_video/raw_data/10-3/f2.8-7-no-wb.raw"  # day in road
+    # night: f2.8-7-no-wb   night-01     LUCID_TRI054S-C_222503282__20240926221055626_video6.raw   night-02   LUCID_TRI054S-C_222503282__20240926221219797_video7.raw  night 04
+    # day:f2.8-1-no-wb.raw day-01    f8-1-no-wb.raw -day-02     f8-3-no-wb.raw  -day-03
+    data_path = "/mnt/data1/hdr_video/raw_data/10-23/f8-3-no-wb.raw"  #
+
     # data_path = "//mnt/data1/hdr_video/raw_data/hdr-videos/savedvideos/LUCID_TRI054S-C_222503282__20240926221219797_video7.raw"
 
     save_path = "/mnt/data1/hdr_video/validation/"
-    folder = 'day-01'
+    folder = 'day-03'
 
     rgb_path = os.path.join(save_path, 'rgb', folder)
     tiff_path = os.path.join(save_path, 'tiff', folder)
+    raw_path = os.path.join(save_path, 'raw_vis', folder)
+
     # data_path = "/home/gongzheli/data/hdr_video/raw_data/LUCID_TRI054S-C_222503282__20240913172338441_video1.raw" # 1482
     raw_data = np.fromfile(data_path, dtype=np.uint8)
     frames = (raw_data.shape)[0] / (2880*1860) // 3
     # frames = (raw_data.shape)[0] / (1280*1280) // 3
+
 
     frames = int(frames)
     print(f"FPS:{frames}")
@@ -487,24 +490,24 @@ def raw_hdr_video():
     j = 0
     # frames = raw_data[200:, :, :]
     for i in tqdm(range(frames)):
-        img_test = raw_data[200+i, :, :]
+        img_test = raw_data[i, :, :]
         # pltImg(img_test)tiff
-        # print(img_test.min(), img_test.max())
-        out, tiff = easyISP(img_test)
-        tiff = minmax_norm(tiff)
-        tiff = np.clip(tiff * (BIT24-1), 0, (BIT24-1)).astype(np.int32)
-        flag1 = cv2.imwrite(f"{tiff_path}/{200+i}_.tiff", tiff)
-        if j>70:
-            exit(234)
-        else:
-            j+=1
-        # flag1 = cv2.imwrite(f"{tiff_path}/{i}.tiff", cv2.cvtColor(tiff, cv2.COLOR_RGB2BGR))
-        # print(flag1)
+
+        img_test = easyISP(img_test)
+        out = minmax_norm(img_test)
+        out = np.clip(out * 255, 0, 255).astype(np.uint8)
+        cv2.imwrite(f"{raw_path}/{i}.png", out)
+
+        # # save rgb from isp
+        # out, tiff = easyISP(img_test)
         # out = minmax_norm(out)
         # out = np.clip(out * 255, 0, 255).astype(np.uint8)
-        # cv2.imwrite(f"{rgb_path}/{i}.png", cv2.cvtColor(out, cv2.COLOR_RGB2BGR))
-
-
+        # cv2.imwrite(f"{rgb_path}/{i}.png", out)
+        #
+        # # save tiff
+        # tiff = minmax_norm(tiff)
+        # tiff = np.clip(tiff * (BIT24-1), 0, (BIT24-1)).astype(np.int32)
+        # cv2.imwrite(f"{tiff_path}/{i}_.tiff", tiff)
 
 if __name__ == '__main__':
     raw_hdr_video()
