@@ -12,7 +12,7 @@ def parse_config():
     parser.add_argument("--seed", type=int, default=1001)
     parser.add_argument("--trainset", type=str, default="/home/ligongzhe/data/raws_val/")
     parser.add_argument("--testset", type=str, default="/home/ligongzhe/data/raws_val/")
-    parser.add_argument("--test_anno", type=str, default="/home/ligongzhe/data/annotations/tmp/val.json")
+    parser.add_argument("--test_anno", type=str, default="/home/ligongzhe/data/annotations/patch_res/val.json")
     # parser.add_argument("--trainset", type=str, default="/home/lgz/data/RhoVision/official_isp/")
     # parser.add_argument("--testset", type=str, default="/home/lgz/data/RhoVision/official_isp/") #rgb_tmp
     # parser.add_argument("--trainset", type=str, default='/home/lgz/data/RoD/val.txt') # rgb_tmp

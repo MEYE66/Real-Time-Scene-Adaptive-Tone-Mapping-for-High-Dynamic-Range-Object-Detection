@@ -15,6 +15,7 @@ def vis_luminance_range():
     from matplotlib import colors as mcolors
     from matplotlib.ticker import PercentFormatter
     np.random.seed(10)
+    # plt.figure(figsize=(12,8))
 
     # 定义亮度范围
     low = 4
@@ -65,12 +66,13 @@ def vis_luminance_range():
 
     # 设置图形属性
     # plt.title('Luminance Distribution with Varying Colors', fontsize=20)
-    plt.xlabel('Scale Factor ($\mathregular{log_{10}}$)', fontsize=16)
-    plt.ylabel('Density', fontsize=16)
+    plt.xlabel('Scale Factor ($\mathregular{log_{10}}$)', fontsize=27)
+    plt.ylabel('Density', fontsize=27)
     plt.xlim(3.9, 7.1)
-    plt.xticks(np.arange(4, 7.5, 0.5))
-    plt.grid(axis='y', alpha=0.75)
+    plt.xticks(np.arange(4, 7.5, 0.5), fontsize=16)
+    plt.yticks(fontsize=16)
 
+    plt.grid(axis='y', alpha=0.75)
     # # plt.title('Luminance Distribution', fontdict={'fontsize': 20})
     # plt.xlabel('Luminance Range', fontdict={'fontsize': 20})
     # plt.ylabel('Density', fontdict={'fontsize': 20})
@@ -82,7 +84,7 @@ def vis_luminance_range():
     # plt.xaxis.set_ticks_position() # 设置x坐标刻度数字或名称的位置
     # ax.xaxis.set_ticks_position(np.arange(0, 1.0, 0.1)) # 设置y坐标刻度数字或名称的位置
     plt.grid(axis='y', alpha=0.75)
-    plt.savefig('luminance_distribution.png', dpi=900, bbox_inches='tight')
+    plt.savefig('./luminance_distribution.png', bbox_inches='tight')
     # 显示图形
     plt.show()
 
@@ -116,12 +118,9 @@ def gray_scale_range():
     # plt.xlim([0, 1200])
 
     # plt.savefig('lum_color.png', dpi=900, bbox_inches='tight', edgecolor='blue')
-
     # 显示灰度条
-    plt.savefig('LDR_color.png', bbox_inches='tight')
+    # plt.savefig('LDR_color.png', bbox_inches='tight')
     plt.show()
-
-
     # 0.000001 0.0001 0.01 1 100 10000 1Million 100 Million 1.6 Billion
 
 
@@ -129,19 +128,24 @@ def gray_scale_range():
 
 def gray_scale_range2():
     # 定义8位灰度条的长度
-    num_levels = 64  # 每个8位灰度条的长度
+    num_levels = 128  # 每个8位灰度条的长度
     transition_length = 64  # 过渡区域的长度
 
     # 生成第一个8位灰度条（0到255）
-    first_gray = np.linspace(0, 255, num_levels, dtype=np.uint8)
+    first_gray = np.linspace(0, 255, num_levels//2, dtype=np.uint8)
 
     # 生成第二个8位灰度条（255到0）
-    second_gray = np.linspace(128, 255, num_levels, dtype=np.uint8)
+    second_gray = np.linspace(256, 512, num_levels//2, dtype=np.uint8)
+
+    third_gray = np.linspace(512, 768, num_levels//2, dtype=np.uint8)
+    
+    forth_gray = np.linspace(768, 1020, num_levels//2, dtype=np.uint8)
+
 
     # 创建过渡区域
     # transition = np.linspace(255, 0, transition_length, dtype=np.uint8)
     # 将两个8位灰度条和过渡区域拼接
-    full_gray_scale = np.concatenate((first_gray, second_gray))
+    full_gray_scale = np.concatenate((first_gray, second_gray, third_gray, forth_gray))
     full_gray_scale_16bit = full_gray_scale.astype(np.uint16)
 
 
@@ -149,9 +153,7 @@ def gray_scale_range2():
 
     # 创建新的图形
     plt.figure(figsize=(12, 2))
-
     plt.imshow(gray_image, aspect='auto', cmap='gray')
-
     # # 设置图形标题和标签
     # plt.title('16-bit Grayscale Bar with Transition Between Two 8-bit Bars')
     # plt.xlabel('Gray Level (0-65535)')
@@ -160,7 +162,7 @@ def gray_scale_range2():
     # plt.xticks(np.linspace(0, len(full_gray_scale) - 1, 8), labels=np.linspace(0, 65535, 8, dtype=int))  # 每256个像素标记一个刻度
     # # 设置x轴范围
     # plt.xlim(-1, len(full_gray_scale))  # 留出边距
-    plt.savefig('hdr_color.png', dpi=900, bbox_inches='tight')
+    plt.savefig('hdr_color.png', bbox_inches='tight')
     # 显示图形
     plt.show()
 
@@ -189,8 +191,8 @@ def npy_load(path):
 
 
 if __name__ == '__main__':
-    # gray_scale_range()
-    vis_luminance_range()
+    gray_scale_range2()
+    # vis_luminance_range()
     # day_path = "/home/gongzheli/Download/day-05107.npy"
-    night_path = "/home/gongzheli/Download/night-16402.npy"
-    npy_load(night_path)
+    # night_path = "/home/gongzheli/Download/night-16402.npy"
+    # npy_load(night_path)

@@ -156,7 +156,7 @@ if __name__ == '__main__':
     
     data_path = "/home/ligongzhe/data/RAWtiff/"
     
-    json_path = "/home/ligongzhe/data/annotations/tmp/val.json"
+    json_path = "/home/ligongzhe/data/annotations/patch_res/val.json"
     
     
 

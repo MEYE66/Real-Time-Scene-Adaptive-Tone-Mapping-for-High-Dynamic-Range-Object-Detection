@@ -16,21 +16,26 @@ def gamma(image, gamma=1.0):
 
 if __name__ == '__main__':
 
-    # root_path = "/mnt/data1/RoD/RAW"
-    # image_path = "night-15663.npy"
+    root_path = "/mnt/data1/RoD/RAW"
+    image_path = "night-15663.npy"
     # # image_path = "day-06051.npy"
     # data_path = os.path.join(root_path, image_path)
     # data = np.load(data_path).astype(np.float32)
-    # # data = data ** (1/1.5)
+    # data = data ** (1/10.5)
     # data = minmax_norm(data)
-
+    #
+    # pltImg(data)
+    # exit(234)
 
     # data_out = cv2.imread("/home/gongzheli/workspace/DAT-main/TMO_CAN-master/results/dualcan/day-06051.npy.png", cv2.IMREAD_UNCHANGED)
-    # data_out = cv2.imread("/home/gongzheli/Download/night-15581.tiff", cv2.IMREAD_UNCHANGED)
+    data_out = cv2.imread("/home/gongzheli/Download/night-15581.tiff", cv2.IMREAD_UNCHANGED)
     #
     #
     data_out = minmax_norm(data_out)
     # data_outbit24 = int_norm(data_out,  (BIT24 - 1))
+    data_out = gamma(data_out, 10)
+    pltImg(data_out)
+
     #
     #
     #
@@ -67,7 +72,7 @@ if __name__ == '__main__':
     # cv2.imwrite("./tmp_results/16bit.png", to_npimage(data_16))
     # cv2.imwrite("./tmp_results/24bit.png", to_npimage(data_24))
     #
-    # exit(234)
+    exit(234)
 
     # exit(234)
 

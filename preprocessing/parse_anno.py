@@ -7,9 +7,25 @@ from glob import glob
 from tqdm import tqdm
 
 # classname_to_id = {'Pedestrian': 1, 'Car': 2, 'Cyclist': 3, 'Tram': 4, 'Tricycle': 5, 'Truck': 6}
-classname_to_id = {'Pedestrian': 1, 'Car': 2, 'Cyclist': 3, 'Tram': 4, 'Truck': 5}
+# List of class names
+class_names = [
+    'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
+    'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat',
+    'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack',
+    'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
+    'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
+    'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+    'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair',
+    'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote',
+    'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book',
+    'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+]
 
+# Convert class names to a dictionary with IDs starting from 0
+classname_to_id = {class_name: i for i, class_name in enumerate(class_names)}
+print(classname_to_id)
 
+# exit(234)
 class Lableme2CoCo:
     def __init__(self, img_postfix):
         self.images = []

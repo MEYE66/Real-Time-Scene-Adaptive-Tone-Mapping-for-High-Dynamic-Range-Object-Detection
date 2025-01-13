@@ -260,8 +260,8 @@ class E2ETMO(nn.Module):
         for nlp_index in range(nlev - 1):
             #    start = time.time()
             z[nlp_index] = self.cnn(x[nlp_index])
-            # tmp = z[nlp_index]
-            # if((tmp!=tmp).any()):
+            # patch_res = z[nlp_index]
+            # if((patch_res!=patch_res).any()):
             #     print(f"after cnn:{nlp_index}")
             # assert (torch.isnan(z[nlp_index].any())), print(f"after cnn:{nlp_index}")
 

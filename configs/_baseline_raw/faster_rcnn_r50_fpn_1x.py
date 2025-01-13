@@ -1,14 +1,15 @@
 _base_ = [
-    # '../_base_/datasets/raw_hdr_detection.py',
-    '../_base_/datasets/raw_hdr_scene_detection.py',
+    '../_base_/datasets/raw_hdr_detection.py',
+    # '../_base_/datasets/raw_hdr_scene_detection.py',
     '../_base_/schedules/schedule_1x.py',
     # '../_base_/schedules/schedule_1x_guided.py',
-    # '../_base_/schedules/schedule_raod.py',
     '../_base_/default_runtime.py',
 ]
+
 img_size = (1280, 1280)
-num_classes = 5
+num_classes = 6
 # model settings
+
 model = dict(
     type='FasterRCNN',
     data_preprocessor=dict(
@@ -18,13 +19,12 @@ model = dict(
         bgr_to_rgb=False,
         pad_size_divisor=32),
     backbone=dict(
-        # type='ReinhardResNet',
-        # type='logSimCANResNet',
-        # type='logCANResNet',
-        type='logSCANResNet',
+        type='logLCANResNetv2',
+        # type='logCANBaseResNet',
+        # type='logSCANResNet_down',
         # type='CANResNet',
         # type='RaodResNet',
-        # type='IAResNet',
+        # type='RAW_ResNet',
         in_channels=3,
         zero_init_residual=False,
         depth=50,
@@ -132,10 +132,11 @@ model = dict(
         # e.g., nms=dict(type='soft_nms', iou_threshold=0.5, min_score=0.05)
     ))
 
-work_dir = './experiments/arch_experiment/tmp_faster-rcnn_logscan_count/' # to run
-# load_from = '/home/ligongzhe/mmdetection/experiments/raw/faster-rcnn_predictor_2_log10/epoch_14.pth'
+
+# load_from = '/home/ligongzhe/mmdetection/arch_experiment/compare/faster-rcnn_lgoscan_down3/epoch_6.pth'
+work_dir = './arch_experiment/re_raw_base/faster-rcnn_lite' # 4k scale=2,
 load_from = 'https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_fpn_1x_coco/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth'
-default_hooks = dict(checkpoint=dict(max_keep_ckpts=3))
+default_hooks = dict(checkpoint=dict(max_keep_ckpts=4))
 
 
 

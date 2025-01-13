@@ -41,7 +41,7 @@ def replace_file_name():
 
 
 
-# def tmp():
+# def patch_res():
 #     src_path = '/home/lgz/data/HDR_RAW/rgbs_val/'
 #     # root = '/home/lgz/data/HDR_RAW/scene/night'
 #     day_dst_path = '/home/lgz/data/HDR_RAW/scene/rgbs_val/day'

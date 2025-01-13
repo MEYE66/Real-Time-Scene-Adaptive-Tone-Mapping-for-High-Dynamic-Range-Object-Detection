@@ -1,22 +1,20 @@
 dataset_type = 'RoDDataset'
 # data_root = '/home/wzh/data/RhoVision/'
-# data_root = '/home/lgz/data/RoD/'
-# data_root = '/home/lgz/data/HDR_RAW/scene/'
+# data_root = '/home/lgz/data/HDR_RAW/scene/' temp_npy
 data_root = '/home/ligongzhe/data/'
 metainfo = {
-    'classes': ('Pedestrian', 'Cyclist', 'Car', 'Truck', 'Tram'),
+    'classes': ('Pedestrian', 'Car', 'Cyclist', 'Tram', 'Tricycle','Truck',),
 }
-num_classes = 5
-
+num_classes = 6
 backend_args = None
-batch_size = 4
-num_worker = 4
+batch_size = 8
+num_worker = 8
 img_size = (1280, 1280)
 GPU = 4
 
+
 train_pipeline = [  # 训练数据处理流程
-    dict(type='LoadImageFromNDRaw',norm=True,color_type='unchanged',imdecode_backend='cv2',),  # 第 1 个流程，从文件路径里加载图像。
-    # dict(type='LoadImageFromFile', color_type='unchanged', imdecode_backend='cv2'),
+    dict(type='LoadImageFromNDRaw',color_type='unchanged',imdecode_backend='cv2'),  # 第 1 个流程，从文件路径里加载图像。
     dict(
         type='LoadAnnotations', with_bbox=True),  # 是否使用标注框(bounding box)， 目标检测需要设置为 True。
     dict(
@@ -30,9 +28,10 @@ train_pipeline = [  # 训练数据处理流程
     dict(type='PackDetInputs')  # 将数据转换为检测器输入格式的流程
 ]
 
-val_pipeline = [  # 测试数据处理流程
-    dict(type='LoadImageFromNDRaw',norm=True,color_type='unchanged',imdecode_backend='cv2',),  # 第 1 个流程，从文件路径里加载图像。
-    # dict(type='LoadImageFromFile', color_type='unchanged', imdecode_backend='cv2'),
+
+# 测试数据处理流程
+val_pipeline = [
+    dict(type='LoadImageFromNDRaw',color_type='unchanged',imdecode_backend='cv2',),  # 第 1 个流程，从文件路径里加载图像。
     dict(type='LoadAnnotations', with_bbox=True),
     dict(type='Resize', scale=img_size, keep_ratio=True),  # 变化图像大小的流程。
     dict(
@@ -55,9 +54,8 @@ train_dataloader = dict(  # 训练 dataloader 配置
         data_root=data_root,
         # data_prefix=dict(img='raws_val/night'),  # 图片路径前缀
         # data_prefix=dict(img='raws_val/day'),  # 图片路径前缀
-        data_prefix=dict(img='det_tmo'),  # 图片路径前缀 # det_tmo
-        # ann_file='raws_val/day_train.json',  # 标注文件路径
-        ann_file='annotations/tmp/train.json',  # 标注文件路径
+        data_prefix=dict(img='RAWtiff2'),  # 图片路径前缀 # det_tmo
+        ann_file='annotations/total/tiff/train.json',  # 标注文件路径
         filter_cfg=dict(filter_empty_gt=True, min_size=32),  # 图片和标注的过滤配置
         pipeline=train_pipeline))  # 这是由之前创建的 train_pipeline 定义的数据处理流程。
 
@@ -75,15 +73,15 @@ val_dataloader = dict(  # 验证 dataloader 配置
         metainfo=metainfo,
         data_root=data_root,
         # data_prefix=dict(img='raws_val/day'),  # 图片路径前缀
-        data_prefix=dict(img='det_tmo'),  # 图片路径前缀
-        ann_file='annotations/tmp/val.json',  # 标注文件路径
+        data_prefix=dict(img='RAWtiff2'),  # 图片路径前缀
+        ann_file='annotations/total/tiff/val.json',  # 标注文件路径
         test_mode=True,  # 开启测试模式，避免数据集过滤图片和标注
         pipeline=val_pipeline))
 
 
 val_evaluator = dict(
     type='CocoMetric',
-    ann_file=data_root + 'annotations/tmp/val.json',
+    ann_file=data_root + 'annotations/total/tiff/val.json',
     metric=['bbox'],
     format_only=False,
     backend_args=backend_args)

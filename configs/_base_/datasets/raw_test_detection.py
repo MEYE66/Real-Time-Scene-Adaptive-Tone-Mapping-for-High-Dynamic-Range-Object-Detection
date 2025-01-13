@@ -54,7 +54,7 @@ train_dataloader = dict(  # 训练 dataloader 配置
         metainfo=metainfo,
         data_root=data_root,
         data_prefix=dict(img='ours'),  # 图片路径前缀 #RGB, RGBhe
-        # ann_file='annotations/tmp/val.json',  # 标注文件路径
+        # ann_file='annotations/patch_res/val.json',  # 标注文件路径
         ann_file='annotations/rgb/val.json',  # 标注文件路径
         filter_cfg=dict(filter_empty_gt=True, min_size=32),  # 图片和标注的过滤配置
         pipeline=train_pipeline))  # 这是由之前创建的 train_pipeline 定义的数据处理流程。

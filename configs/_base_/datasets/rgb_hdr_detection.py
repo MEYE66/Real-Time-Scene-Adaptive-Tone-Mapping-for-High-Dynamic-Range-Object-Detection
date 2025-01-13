@@ -4,13 +4,12 @@ dataset_type = 'RoDDataset'
 # data_root = '/home/lgz/data/HDR_RAW/scene/'
 # data_root = '/home/lgz/data/RoD/'
 data_root = '/home/ligongzhe/data/'
-
 metainfo = {
-    'classes': ('Pedestrian', 'Cyclist', 'Car', 'Truck', 'Tram'),
+    'classes': ('Pedestrian', 'Car', 'Cyclist', 'Tram', 'Tricycle','Truck',),
 }
-num_classes = 5
+num_classes = 6
 backend_args = None
-batch_size = 16
+batch_size = 8
 num_worker = 4
 img_size = (1280, 1280)
 GPU = 2
@@ -52,9 +51,9 @@ train_dataloader = dict(  # 训练 dataloader 配置
         type=dataset_type,
         metainfo=metainfo,
         data_root=data_root,
-        data_prefix=dict(img='RGB'),  # 图片路径前缀 # RGBhe, RGBman,RGBrein, zero_dcepp, sci, logcan
-        # ann_file='annotations/rgb/train.json',  # 标注文件路径
-        ann_file='annotations/scene/rgb/day/train.json',  # 标注文件路径
+        data_prefix=dict(img='zero_dcepp'),  # 图片路径前缀 # RGBhe, RGBman,RGBrein, zero_dcepp, sci, logcan, RGBcolie
+        ann_file='annotations/total/png/train.json',  # 标注文件路径
+        # ann_file='annotations/scene/rgb/day/train.json',  # 标注文件路径
         filter_cfg=dict(filter_empty_gt=True, min_size=32),  # 图片和标注的过滤配置
         pipeline=train_pipeline))  # 这是由之前创建的 train_pipeline 定义的数据处理流程。
 
@@ -72,21 +71,19 @@ val_dataloader = dict(  # 验证 dataloader 配置
         type=dataset_type,
         metainfo=metainfo,
         data_root=data_root,
-        data_prefix=dict(img='RGB'),  # 图片路径前缀 # RGBhe, RGBman, zero_dcepp, sci, logcan
-        # ann_file='annotations/rgb/val.json',  # 标注文件路径
-        ann_file='annotations/scene/rgb/day/val.json',  # 标注文件路径
+        data_prefix=dict(img='zero_dcepp'),  # 图片路径前缀 # RGBhe, RGBman, zero_dcepp, sci, logcan
+        ann_file='annotations/total/png/val.json',  # 标注文件路径
+        # ann_file='annotations/scene/rgb/day/val.json',  # 标注文件路径
         test_mode=True,  # 开启测试模式，避免数据集过滤图片和标注
         pipeline=val_pipeline))
 
 
 val_evaluator = dict(
     type='CocoMetric',
-    # ann_file=data_root + 'annotations/rgb/val.json',  # 标注文件路径
-    ann_file=data_root + 'annotations/scene/rgb/day/val.json',
+    ann_file=data_root + 'annotations/total/png/val.json',  # 标注文件路径
     metric=['bbox'],
     format_only=False,
     backend_args=backend_args)
-
 
 test_dataloader = val_dataloader
 test_evaluator = val_evaluator

@@ -10,8 +10,8 @@ import torch.nn.functional as F
 import kornia
 import math
 from torch.nn.modules.batchnorm import _BatchNorm
-# from resizer import LearnedResizer
 from mmdet.models.backbones.resizer import LearnedResizer
+from mmdet.models.backbones import utils
 
 
 def upsample(img, odd, filt):
@@ -172,13 +172,11 @@ def build_net(norm=AdaptiveNorm, layer=5, width=32):
         norm(width),
         lrelu(),
     ]
-
     for l in range(1, layer):
         layers += [nn.Conv2d(width, width, kernel_size=3, stride=1, padding=2 ** l, dilation=2 ** l, bias=False),
                    norm(width),
                    lrelu(),
                    ]
-
     layers += [
         nn.Conv2d(width, width, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
         norm(width),
@@ -191,10 +189,56 @@ def build_net(norm=AdaptiveNorm, layer=5, width=32):
     return net
 
 
+def build_net_conv(norm=AdaptiveNorm, layer=5, width=32):
+    layers = [
+        nn.Conv2d(1, width, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
+        norm(width),
+        lrelu(),
+    ]
+    for l in range(1, layer):
+        layers += [nn.Conv2d(width, width, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
+                   norm(width),
+                   lrelu(),
+                   ]
+    layers += [
+        nn.Conv2d(width, width, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
+        norm(width),
+        lrelu(),
+        nn.Conv2d(width, 1, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
+    ]
+
+    net = nn.Sequential(*layers)
+    net.apply(weights_init)
+    return net
+
+
+def build_fast_net(norm=AdaptiveNorm, layer=4, width=32):
+    layers = [
+        nn.Conv2d(1, width, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
+        # norm(width),
+        lrelu(),
+    ]
+    for l in range(1, layer):
+        layers += [nn.Conv2d(width, width, kernel_size=3, stride=1, padding=1, bias=False),
+                   # norm(width),
+                   lrelu(),
+                   ]
+    layers += [
+        nn.Conv2d(width, width, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
+        # norm(width),
+        lrelu(),
+        nn.Conv2d(width, 1, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
+    ]
+    net = nn.Sequential(*layers)
+    net.apply(weights_init)
+    return net
+
+
 class logCANTMO_base(nn.Module):
     def __init__(self, layer=4, num_feat=32):
         super(logCANTMO_base, self).__init__()
         self.conv_net = build_net(layer=layer)
+        # self.conv_net = build_fast_net(layer=2)
         self.screen_max, self.screen_min = 300, 5
         self.scene_max, self.scene_min = 1e6, 1e3
         self.image_adaptive_local = nn.Sequential(
@@ -214,6 +258,8 @@ class logCANTMO_base(nn.Module):
         param_local = F.interpolate(param_local, (H, W), mode='bilinear', align_corners=True)
         luminance_local = 10 ** (param_local * 4 + (1 - param_local) * 7)
         image_val = image_val * (luminance_local - 10) + 10
+        # print(f"sigmoid map: min {(param_local.min())}, max {(param_local.max())}")
+        # print(f"luminance map: min {torch.log10(luminance_local.min())}, max {torch.log10(luminance_local.max())}")
         return image_val
 
     def post_calibration(self, image_rgb):
@@ -406,41 +452,35 @@ class logSCANTMO(nn.Module):
         return result
 
 
-class logSimCANTMO(nn.Module):
-    def __init__(self, layer=4, num_feat=32):
-        super(logSimCANTMO, self).__init__()
-        self.conv_net = build_net(layer=layer)
-        self.screen_max, self.screen_min = 300, 5
-        # self.scene_max, self.scene_min = 1e6, 1e3
+class logSCANTMO_down(logSCANTMO):
+    """logCAN Tone Mapper  with down sampling
+    """
 
-    def pre_calibration(self, image_val):
-        # fixed scene luminance calibration
-        # if self.training:
-        #     scene_max = random.choice([1e3, 1e4, 1e5, 1e6])
-        #     scene_min = 5
-        # else:
-        #     scene_max = 1e3
-        #     scene_min = 5
-        scene_max = 1e6
-        scene_min = 5
-        image_val = (scene_max - scene_min) * image_val + scene_min
-        return image_val
+    def __init__(self, scale=2):
+        super(logSCANTMO_down, self).__init__()
+        self.scale = scale
 
-    def post_calibration(self, image_val):
-        image_val = torch.sigmoid(image_val)
-        image_val = (self.screen_max - self.screen_min) * image_val + self.screen_min
+    def ada_pre_calibration(self, image_rgb, image_val):
+        image_val = (image_val - image_val.min()) / (image_val.max() - image_val.min())  # 0-1 minmax_norm
+        param_local = self.image_adaptive_local(image_rgb)
+        param_local = torch.sigmoid(param_local)
+        luminance_local = 10 ** (param_local * 4 + (1 - param_local) * 7)
+        image_val = image_val * (luminance_local - 10) + 10
         return image_val
 
     def forward(self, image_rgb):
-        image_hsv = kornia.color.rgb_to_hsv(image_rgb)
+        img_down = F.interpolate(image_rgb, scale_factor=1 / self.scale, mode='bilinear', align_corners=True)
+        # h, w = image_rgb.shape[-2:]
+        image_hsv = kornia.color.rgb_to_hsv(img_down)
         image_val = image_hsv[:, 2:3, :, :]
-        image_val = self.pre_calibration(image_val)
-        out = torch.log10(image_val)
-        out = self.conv_net(out)
-        out = self.post_calibration(out)
-        image_hsv[:, 2:3, :, :] = out
-        out = kornia.color.hsv_to_rgb(image_hsv)
-        return out
+        image_val_down = self.ada_pre_calibration(img_down, image_val)
+        image_val_down = torch.log10(image_val_down)
+        image_val_down = self.conv_net(image_val_down)
+        result = self.post_calibration(image_val_down)
+        image_hsv[:, 2:3, :, :] = result
+        result = kornia.color.hsv_to_rgb(image_hsv)
+        result = F.interpolate(result, scale_factor=self.scale, mode='bilinear', align_corners=True)
+        return result
 
 
 class logCANTMO(nn.Module):
@@ -458,35 +498,35 @@ class logCANTMO(nn.Module):
         self.screen_max, self.screen_min = 300, 5
         self.scene_max, self.scene_min = 1e6, 1e3
         self.temperature_ = 10
-        self.image_adaptive_local = nn.Sequential(
-            nn.Conv2d(3, num_feat, kernel_size=7, stride=1, padding=3, bias=True),
-            nn.ReLU(),
-            nn.Conv2d(num_feat, num_feat, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.ReLU(),
-            nn.Conv2d(num_feat, 1, kernel_size=3, stride=1, padding=1, bias=True),
-            # nn.Sigmoid(),
-        )
+        # self.image_adaptive_local = nn.Sequential(
+        #     nn.Conv2d(3, num_feat, kernel_size=7, stride=1, padding=3, bias=True),
+        #     nn.ReLU(),
+        #     nn.Conv2d(num_feat, num_feat, kernel_size=3, stride=1, padding=1, bias=True),
+        #     nn.ReLU(),
+        #     nn.Conv2d(num_feat, 1, kernel_size=3, stride=1, padding=1, bias=True),
+        #     # nn.Sigmoid(),
+        # )
 
-    # def pre_calibration(self, image_rgb, image_val):
-    #     image_val = (image_val - image_val.min())/(image_val.max()-image_val.min()) # 0-1 minmax_norm
-    #     s_max = torch.max(image_val) / (torch.exp(torch.mean(torch.log(1e-6+image_val))))
-    #     s_min = 10.
-    #     image_val = (s_max - s_min) * image_val + s_min
-    #     return image_val
-    def ada_pre_calibration(self, image_rgb, image_val):
+    def pre_calibration(self, image_rgb, image_val):
         image_val = (image_val - image_val.min()) / (image_val.max() - image_val.min())  # 0-1 minmax_norm
-        image_down = F.interpolate(image_rgb, (256, 256), mode='bilinear', align_corners=True)
-        H, W = image_rgb.shape[-2:]
-        param_local = self.image_adaptive_local(image_down)
-        param_local = torch.sigmoid(param_local * self.temperature_)
-        param_local = F.interpolate(param_local, (H, W), mode='bilinear', align_corners=True)
-        luminance_local = torch.sin(0.5 * torch.pi * param_local) * self.scene_max + torch.cos(
-            0.5 * torch.pi * param_local) * self.scene_min
-        # luminance_local = 10**(param_local * 3 + (1-param_local)*6)
-        image_val = image_val * (luminance_local - 10) + 10
-        # return image_val, luminance_local
+        s_max = torch.max(image_val) / (torch.exp(torch.mean(torch.log(1e-6 + image_val))))
+        s_min = 10.
+        image_val = (s_max - s_min) * image_val + s_min
         return image_val
 
+    # def ada_pre_calibration(self, image_rgb, image_val):
+    #     image_val = (image_val - image_val.min()) / (image_val.max() - image_val.min())  # 0-1 minmax_norm
+    #     image_down = F.interpolate(image_rgb, (256, 256), mode='bilinear', align_corners=True)
+    #     H, W = image_rgb.shape[-2:]
+    #     param_local = self.image_adaptive_local(image_down)
+    #     param_local = torch.sigmoid(param_local * self.temperature_)
+    #     param_local = F.interpolate(param_local, (H, W), mode='bilinear', align_corners=True)
+    #     luminance_local = torch.sin(0.5 * torch.pi * param_local) * self.scene_max + torch.cos(
+    #         0.5 * torch.pi * param_local) * self.scene_min
+    #     # luminance_local = 10**(param_local * 3 + (1-param_local)*6)
+    #     image_val = image_val * (luminance_local - 10) + 10
+    #     # return image_val, luminance_local
+    #     return image_val
     def post_calibration(self, image_rgb):
         result = torch.sigmoid(image_rgb)  # [0, 1]
         result = (self.screen_max - self.screen_min) * result + self.screen_min
@@ -498,8 +538,8 @@ class logCANTMO(nn.Module):
     def forward(self, image_rgb):
         image_hsv = kornia.color.rgb_to_hsv(image_rgb)
         image_val = image_hsv[:, 2:3, :, :]
-        # image_val_nlp = self.pre_calibration(image_rgb, image_val)
-        image_val = self.ada_pre_calibration(image_rgb, image_val)
+        image_val = self.pre_calibration(image_rgb, image_val)
+        # image_val = self.ada_pre_calibration(image_rgb, image_val)
         image_val = torch.log10(image_val)
         result = self.conv_net(image_val)
         result = self.post_calibration(result)
@@ -518,64 +558,64 @@ class logSCANTMO_down(logSCANTMO):
 
     def ada_pre_calibration(self, image_rgb, image_val):
         image_val = (image_val - image_val.min()) / (image_val.max() - image_val.min())  # 0-1 minmax_norm
-        # image_down = F.interpolate(image_rgb, (256, 256), mode='bilinear', align_corners=True)
-        # H, W = image_rgb.shape[-2:]
         param_local = self.image_adaptive_local(image_rgb)
         param_local = torch.sigmoid(param_local)
-        luminance_local = 10 ** (param_local * 4 + (1 - param_local) * 7)
-        image_val = image_val * (luminance_local - 5) + 5
-        return image_val
-
-    def forward(self, image_rgb):
-        img_down = F.interpolate(image_rgb, scale_factor=1 / self.scale, mode='bilinear', align_corners=True)
-        h, w = image_rgb.shape[-2:]
-        image_hsv = kornia.color.rgb_to_hsv(img_down)
-        image_val = image_hsv[:, 2:3, :, :]
-        # image_val_nlp = self.pre_calibration(image_rgb, image_val)
-        image_val_down = self.ada_pre_calibration(img_down, image_val)
-        image_val_down = torch.log10(image_val_down)
-        image_val_down = self.conv_net(image_val_down)
-        result = self.post_calibration(image_val_down)
-        result = F.interpolate(result, (h, w), mode='bilinear', align_corners=True)
-        image_hsv = kornia.color.rgb_to_hsv(image_rgb)
-        image_hsv[:, 2:3, :, :] = result
-        result = kornia.color.hsv_to_rgb(image_hsv)
-        return result
-
-
-class logSCANTMO_resize(logCANTMO_base):
-    """logCAN Tone Mapper  with down sampling
-    """
-
-    def __init__(self, scale=5):
-        super(logSCANTMO_resize, self).__init__()
-        self.scale = scale
-        self.upsampler = LearnedResizer(scale=scale, num_in_ch=1, num_out_ch=1)
-        # self.downsampler = LearnedResizer(scale=1/scale, num_in_ch=1, num_out_ch=1)
-
-    def ada_pre_calibration(self, image_rgb, image_val):
-        image_val = (image_val - torch.min(image_val)) / (
-                    torch.max(image_val) - torch.min(image_val))  # 0-1 minmax_norm
-        param_local = self.image_adaptive_local(image_rgb)
         luminance_local = 10 ** (param_local * 4 + (1 - param_local) * 7)
         image_val = image_val * (luminance_local - 10) + 10
         return image_val
 
     def forward(self, image_rgb):
+        img_down = F.interpolate(image_rgb, scale_factor=1 / self.scale, mode='bilinear', align_corners=True)
         # h, w = image_rgb.shape[-2:]
-        image_hsv = kornia.color.rgb_to_hsv(image_rgb)
+        image_hsv = kornia.color.rgb_to_hsv(img_down)
         image_val = image_hsv[:, 2:3, :, :]
-        image_val = self.ada_pre_calibration(image_rgb, image_val)
-        image_val = F.interpolate(image_val, scale_factor=1 / self.scale, mode='bilinear', align_corners=True)
-
-        image_val_down = torch.log10(image_val)
+        image_val_down = self.ada_pre_calibration(img_down, image_val)
+        image_val_down = torch.log10(image_val_down)
         image_val_down = self.conv_net(image_val_down)
-        image_val_down = self.upsampler(image_val_down)
         result = self.post_calibration(image_val_down)
-        # result = F.interpolate(result, (h, w), mode='bilinear', align_corners=True)
-
         image_hsv[:, 2:3, :, :] = result
         result = kornia.color.hsv_to_rgb(image_hsv)
+        result = F.interpolate(result, scale_factor=self.scale, mode='bilinear', align_corners=True)
+        return result
+
+
+class logLCNN(logCANTMO_base):  # remove BN, use resizer
+    def __init__(self, scale=2):
+        super(logLCNN, self).__init__()
+        self.scale = scale
+        self.conv_net = build_fast_net(layer=4, width=32)
+
+    def forward(self, image_rgb):
+        img_down = F.interpolate(image_rgb, scale_factor=1 / self.scale, mode='bilinear', align_corners=True)
+        image_hsv = kornia.color.rgb_to_hsv(img_down)
+        image_val = image_hsv[:, 2:3, :, :]
+        image_val_down = self.ada_pre_calibration(img_down, image_val)
+        image_val_down = torch.log10(image_val_down)
+        image_val_down = self.conv_net(image_val_down)
+        result = self.post_calibration(image_val_down)
+        image_hsv[:, 2:3, :, :] = result
+        result = kornia.color.hsv_to_rgb(image_hsv)
+        result = F.interpolate(result, scale_factor=self.scale, mode='bilinear', align_corners=True)
+        return result
+
+
+class logLCNNv2(logCANTMO_base):  # 2-middle layer, width=16
+    def __init__(self, scale=2):
+        super(logLCNNv2, self).__init__()
+        self.scale = scale
+        self.conv_net = build_net_conv(layer=2, width=16)
+
+    def forward(self, image_rgb):
+        image_rgb = F.interpolate(image_rgb, scale_factor=1 / self.scale, mode='bilinear', align_corners=True)
+        image_hsv = kornia.color.rgb_to_hsv(image_rgb)
+        image_val = image_hsv[:, 2:3, :, :]
+        image_val_down = self.ada_pre_calibration(image_rgb, image_val)
+        image_val_down = torch.log10(image_val_down)
+        image_val_down = self.conv_net(image_val_down)
+        result = self.post_calibration(image_val_down)
+        image_hsv[:, 2:3, :, :] = result
+        result = kornia.color.hsv_to_rgb(image_hsv)
+        result = F.interpolate(result, scale_factor=self.scale, mode='bilinear', align_corners=True)
         return result
 
 
@@ -640,6 +680,14 @@ def default_init_weights(module_list, scale=1, bias_fill=0.1, **kwargs):
                     m.bias.data.fill_(bias_fill)
 
 
+def thop_model_computation(model, input_data):
+    macs, params = thop.profile(model, inputs=(input_data,))
+    macs, params = thop.clever_format([macs, params], "%.3f")
+
+    print('{:<30}  {:<8}'.format('Computational complexity Macs: ', macs))
+    print('{:<30}  {:<8}'.format('Number of parameters: ', params))
+
+
 def ptflops_model_computation(model, input_data):
     with torch.cuda.device(0):
         macs, params = ptflops.get_model_complexity_info(model, tuple(input_data.shape[1:]), as_strings=True,
@@ -648,20 +696,11 @@ def ptflops_model_computation(model, input_data):
     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
 
 
-def thop_model_computation(model, input_data):
-    macs, params = thop.profile(model, inputs=(input_data,))
-    macs, params = thop.clever_format([macs, params], "%.3f")
-
-    print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
-    print('{:<30}  {:<8}'.format('Number of parameters: ', params))
-
-
 def inference_latency_gpu(model, input_data):
     # device = torch.device("cuda:7")
-    device = torch.device("cpu")
-    model.to(device)
+    device = torch.device("cuda:9")
+    model = model.to(device)
     dummy_input = input_data.to(device)
-    # dummy_input = torch.randn(1, 3, 224, 224, dtype=torch.float).to(device)
     # INIT LOGGERS
     starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
     repetitions = 50
@@ -683,31 +722,62 @@ def inference_latency_gpu(model, input_data):
     print(f"inference latency :{mean_syn:<4} ms.")
 
 
+def inference_profiler_gpu(model, inputs):
+    device = torch.device("cuda:9")
+    # activities = [ProfilerActivity.CPU, ProfilerActivity.CUDA, ProfilerActivity.XPU]
+    activities = [ProfilerActivity.CUDA, ]
+    sort_by_keyword = 'cuda' + "_time_total"
+
+    model = model.to(device)
+    inputs = inputs.to(device)
+    with profile(activities=activities, record_shapes=True) as prof:
+        with record_function("model_inference"):
+            model(inputs)
+
+    print(prof.key_averages().table(sort_by=sort_by_keyword, row_limit=5))
+
+
 if __name__ == '__main__':
     import numpy as np
     import os
     import ptflops
     import thop
+    from torch.profiler import profile, record_function, ProfilerActivity
 
-    os.environ["CUDA_VISIBLE_DEVICES”"] = "4"
-    x = torch.randn(1, 3, 1280, 1280)  # 4096×2160
+    os.environ["CUDA_VISIBLE_DEVICES”"] = "9"
+    x = torch.randn(1, 3, 1280, 1280)
+
+    # x = torch.randn(1, 3, 4096, 2160)
+    # x = torch.randn(1, 3, 2560, 1440)
+    # 2560x1440
+    # 4096×2160
     # x = torch.randn(1, 3, 4096,2160)
     # model = DualCANTMO().cuda()
     # state_dict = torch.load("/home/ligongzhe/ckpt/dualcan-00019.pt")['state_dict']
-
     # model.load_state_dict(state_dict)
     # model = logCANTMO().cuda()
     # state_dict = torch.load("/home/ligongzhe/ckpt/ada_canlog-00019.pt")['state_dict']
-    # model = logCANTMO()
-    # model = ReinhardTMO()
-
-    model = logSCANTMO_resize(scale=2)
     # model = logCANTMO_base()
-    out = model(x)
-    print(out.shape)
+    # conv = nn.Conv2d(3,3,3,2,1,bias=False)
+    # model = logCANTMO_base()
+    # model = logLCNN()
+    # model = logSCANTMO_down(scale=2)
+    model = logLCNNv2(scale=2)
 
-    ptflops_model_computation(model, x)
-    # thop_model_computation(model, x)
+    # print(out.shape)
+    # inference_latency_gpu(model, x)
+    # inference_profiler_gpu(model, x)
+    thop_model_computation(model, x)
+
+    # 4k 2-middle layer width-32: 61ms  width-16:38ms
+    # 4k 4-middle layer width-32 downscale=2:  25ms
+
+    # 4k 2-middle layer width-16 downsacle=1:  80ms
+    # 4k 2-middle layer width-16 downsacle=2:  20ms
+
+
+
+
 
 
 

@@ -708,20 +708,6 @@ class CANResNet(ResNet):
 
 
 @MODELS.register_module()
-class logSimCANResNet(ResNet):
-    def __init__(self, **kwargs):
-        super(logSimCANResNet, self).__init__(**kwargs)
-        self.isp_preprocessor = tmo.logSimCANTMO()
-        state_dict = torch.load("/home/ligongzhe/ckpt/ada_canlog-00019.pt")['state_dict']
-        self.isp_preprocessor.load_state_dict(state_dict, strict=False)
-
-    def forward(self, x):
-        out = self.isp_preprocessor(x)
-        out = super(logSimCANResNet, self).forward(out)
-        return out
-
-
-@MODELS.register_module()
 class logCANResNet(ResNet):
     def __init__(self, frozen_preprocessor=False, **kwargs):
         super(logCANResNet, self).__init__(**kwargs)
@@ -736,6 +722,30 @@ class logCANResNet(ResNet):
     def forward(self, x):
         out = self.isp_preprocessor(x)
         out = super(logCANResNet, self).forward(out)
+        return out
+
+
+@MODELS.register_module()
+class logLCANResNet(ResNet):
+    def __init__(self, frozen_preprocessor=False, **kwargs):
+        super(logLCANResNet, self).__init__(**kwargs)
+        self.isp_preprocessor = tmo.logLCNN()
+    def forward(self, x):
+        out = self.isp_preprocessor(x)
+        out = super(logLCANResNet, self).forward(out)
+        return out
+
+
+@MODELS.register_module()
+class logLCANResNetv2(ResNet):
+    def __init__(self, frozen_preprocessor=False, **kwargs):
+        super(logLCANResNetv2, self).__init__(**kwargs)
+        self.isp_preprocessor = tmo.logLCNNv2()
+        state_dict = torch.load("/home/ligongzhe/ckpt/light-ada_canlog-00019.pt")['state_dict']
+        self.isp_preprocessor.load_state_dict(state_dict, strict=False)
+    def forward(self, x):
+        out = self.isp_preprocessor(x)
+        out = super(logLCANResNetv2, self).forward(out)
         return out
 
 
@@ -758,20 +768,15 @@ class logSCANResNet(ResNet):
 
 
 @MODELS.register_module()
-class logColorCANResNet(ResNet):
-    def __init__(self, frozen_preprocessor=False, **kwargs):
-        super(logColorCANResNet, self).__init__(**kwargs)
-        self.isp_preprocessor = tmo.logCANTMO()
+class logSCANResNet_down(ResNet):
+    def __init__(self,  **kwargs):
+        super(logSCANResNet_down, self).__init__(**kwargs)
+        self.isp_preprocessor = tmo.logSCANTMO_down()
         state_dict = torch.load("/home/ligongzhe/ckpt/ada_canlog-00019.pt")['state_dict']
         self.isp_preprocessor.load_state_dict(state_dict, strict=False)
-        if frozen_preprocessor:
-            self.isp_preprocessor.eval()
-            for param in self.isp_preprocessor.parameters():
-                param.requires_grad = False
-
     def forward(self, x):
         out = self.isp_preprocessor(x)
-        out = super(logColorCANResNet, self).forward(out)
+        out = super(logSCANResNet_down, self).forward(out)
         return out
 
 
@@ -785,7 +790,6 @@ class ReinhardResNet(ResNet):
         out = self.isp_preprocessor(x)
         out = super(ReinhardResNet, self).forward(out)
         return out
-
 
 @MODELS.register_module()
 class RaodResNet(ResNet):
@@ -829,21 +833,48 @@ class DiffISPResNet(ResNet):
         return out
 
 
+#logCANTMO_base
+@MODELS.register_module()
+class logCANBaseResNet(ResNet):
+    def __init__(self,  **kwargs):
+        super(logCANBaseResNet, self).__init__(**kwargs)
+        self.isp_preprocessor = tmo.logCANTMO_base()
+        state_dict = torch.load("/home/ligongzhe/ckpt/ada_canlog-00019.pt")['state_dict']
+        self.isp_preprocessor.load_state_dict(state_dict, strict=False)
+    def forward(self, x):
+        out = self.isp_preprocessor(x)
+        out = super(logCANBaseResNet, self).forward(out)
+        return out
+
+# torch.autograd.set_detect_anomaly(True)
+@MODELS.register_module()
+class logCANResizeResNet(ResNet):
+    def __init__(self,  **kwargs):
+        super(logCANResizeResNet, self).__init__(**kwargs)
+        self.isp_preprocessor = tmo.logSCANTMO_resize()
+        state_dict = torch.load("/home/ligongzhe/ckpt/ada_canlog-00019.pt")['state_dict']
+        self.isp_preprocessor.load_state_dict(state_dict, strict=False)
+
+    def forward(self, x):
+        out = self.isp_preprocessor(x)
+        out = super(logCANResizeResNet, self).forward(out)
+        return out
+
+
 if __name__ == '__main__':
     x = torch.randn(1, 3, 512, 512)
     # model = RAODNet(num_in_ch=1)
     # model = IANet(num_in_ch=1)
     # model = CANResNet(depth=50)
+    # model = logCANBaseResNet()
     # out = model(x)
+    # print(out.shape)
     # print(model)
-
     # isp_preprocessor = tmo.logCANTMO()
     # state_dict = torch.load("/home/ligongzhe/ckpt/ada_canlog-00019.pt")['state_dict']
     # isp_preprocessor.load_state_dict(state_dict)
-
     logcan_resnet = logCANResNet(depth=50)
     parse_model(logcan_resnet)
-
     print()
 
 

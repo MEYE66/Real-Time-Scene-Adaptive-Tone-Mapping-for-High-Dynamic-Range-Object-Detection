@@ -253,7 +253,7 @@ def main():
         
 if __name__ == '__main__':
     data_path = "/home/ligongzhe/data/RAWtiff/"
-    json_path = "/home/ligongzhe/data/annotations/tmp/val.json"
+    json_path = "/home/ligongzhe/data/annotations/patch_res/val.json"
     tf = np_transforms.Compose([
         # np_transforms.RandomCrop(512),
         # np_transforms.RandomHorizontalFlip(),
@@ -293,10 +293,10 @@ if __name__ == '__main__':
     #  '/home/lgz/data/RhoVision/official_isp/LUCID_TRI054S-C_223800455__20231105151747093_image0.png'
     #              ]
     # path_list = [
-    #     '/home/lgz/data/RhoVision/tmp/LUCID_TRI054S-C_223800455__20231105150648075_image0.npy',
-    #  '/home/lgz/data/RhoVision/tmp/LUCID_TRI054S-C_223800455__20231105144144753_image0.npy',
-    #  '/home/lgz/data/RhoVision/tmp/LUCID_TRI054S-C_223800455__20231105134348800_image0.npy',
-    #  '/home/lgz/data/RhoVision/tmp/LUCID_TRI054S-C_223800455__20231105151747093_image0.npy'
+    #     '/home/lgz/data/RhoVision/patch_res/LUCID_TRI054S-C_223800455__20231105150648075_image0.npy',
+    #  '/home/lgz/data/RhoVision/patch_res/LUCID_TRI054S-C_223800455__20231105144144753_image0.npy',
+    #  '/home/lgz/data/RhoVision/patch_res/LUCID_TRI054S-C_223800455__20231105134348800_image0.npy',
+    #  '/home/lgz/data/RhoVision/patch_res/LUCID_TRI054S-C_223800455__20231105151747093_image0.npy'
     #              ]
 
     # labelme_json = glob.glob('/home/lgz/data/RoD/RAWo/*.raw')

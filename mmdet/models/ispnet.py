@@ -117,6 +117,8 @@ class RAODNet(nn.Module):
 
 
 # IANet from adaptive yolo for adverse weather
+
+# IANet from adaptive yolo for adverse weather
 class IANet(nn.Module):
     def __init__(self, num_in_ch=3, number_f=32):
         super(IANet, self).__init__()
@@ -243,9 +245,17 @@ def model_computation(model, input_data):
     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
 
 
+def thop_model_computation(model, input_data):
+    macs, params = thop.profile(model, inputs=(input_data,))
+    macs, params = thop.clever_format([macs, params], "%.3f")
+
+    print('{:<30}  {:<8}'.format('Computational complexity Macs: ', macs))
+    print('{:<30}  {:<8}'.format('Number of parameters: ', params))
+
+
 def inference_latency_gpu(model, input_data):
     # device = torch.device("cuda:7")
-    device = torch.device("cpu")
+    device = torch.device("cuda")
     model.to(device)
     dummy_input = input_data.to(device)
     # dummy_input = torch.randn(1, 3, 224, 224, dtype=torch.float).to(device)
@@ -271,16 +281,22 @@ def inference_latency_gpu(model, input_data):
 
 
 if __name__ == '__main__':
+    import os
+    import thop
     import ptflops
     import numpy as np
+    from mmdet.models.backbones import diff_isp
 
+    os.environ["CUDA_VISIBLE_DEVICES"] = "9"
     x = torch.randn(1, 3, 1280, 1280)
 
-    model = RAODNet(num_in_ch=3)
-    # model = IANet(num_in_ch=3)
+    # model = RAODNet(num_in_ch=3)
+    model = IANet(num_in_ch=3)
+
     # model = LiteISPNet(num_in_ch=1,)
-    # out = model(x)
-    # print(out.shape)
-    model_computation(model, x)
+    out = model(x)
+    print(out.shape)
+    # thop_model_computation(model, x)
     # inference_latency_gpu(model, x)
+
 

@@ -6,7 +6,7 @@ _base_ = [
 ]
 
 
-num_classes = 5
+num_classes = 6
 # model settings
 model = dict(
      data_preprocessor=dict(

@@ -94,8 +94,8 @@ if __name__ == '__main__':
     # image_name = "day-05267.png"
     # crop_region = [(250, 500), (450, 700)]   # 200x200
 
-    image_name = "day-05825.png"
-    crop_region = [(300, 350), (500, 550)]   # 200x200
+    # image_name = "day-05825.png"
+    # crop_region = [(300, 350), (500, 550)]   # 200x200
 
     # image_name = "night-15624.png"
     # crop_region = [(700, 350), (900, 550)]
@@ -104,30 +104,50 @@ if __name__ == '__main__':
     # image_name = "night-15745.png"
     # crop_region = [(300, 550), (500, 750)]
 
-
-    for i in method_paths:
-        image_path = os.path.join(root_path, i, image_name)
-        print(image_path)
-        image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-        # pltImg(image)
-        image_crop, image_with_rect = get_image_crop(image, crop_region)
-        # print(image.shape)
-        # pltImg(image_crop)
-        # pltImg(image_with_rect)
-        # exit(234)
-
-        cv2.imwrite(f"{os.path.join(root_path, i, 'rect-'+image_name)}.png", image_with_rect)
-        cv2.imwrite(f"{os.path.join(root_path, i, 'crop-'+image_name)}.png", image_crop)
+    # for i in method_paths:
+    #     image_path = os.path.join(root_path, i, image_name)
+    #     print(image_path)
+    #     image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+    #     # pltImg(image)
+    #     image_crop, image_with_rect = get_image_crop(image, crop_region)
+    #     print(image.shape)
+    #     pltImg(image_crop)
+    #     # pltImg(image_with_rect)
+    #
+    #     cv2.imwrite(f"{os.path.join(root_path, i, 'rect-'+image_name)}.png", image_with_rect)
+    #     cv2.imwrite(f"{os.path.join(root_path, i, 'crop-'+image_name)}.png", image_crop)
 
 
-    # path = "./det_results/isp/night-15581.png"
-    # image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
-    # image_crop, image_with_rect = get_image_crop(image, crop_region)
+    # image_name = "./realworld/day-01-244_0.0.png"
+    # image_name = "./realworld/day-01-244_0.0.png"
+    # crop_region = [(1300, 500), (1500, 750)] ## there is car
+
+
+    # image_name = "./realworld/day-02-245_0.0.png"
+    # crop_region = [(1370, 450), (1570, 650)]
+    #
+    # image_name = "./realworld/night-02-263.png"
+    # crop_region = [(200, 270), (400, 470)]
+    #
+    #
+    image_name = "./realworld/night-02-157.png"
+    crop_region = [(200, 270), (400, 470)]
+
+
+    image = cv2.imread(image_name, cv2.IMREAD_UNCHANGED)
+    image_name = os.path.basename(image_name).split('.')[0]
+
+
+    image_crop, image_with_rect = get_image_crop(image, crop_region)
+    # pltImg(image_crop)
+    # pltImg(image_with_rect)
+    # cv2.imwrite(f"./realworld/patch_res/{image_name}", image_crop)
+    cv2.imwrite(f"./realworld/patch_res/{'rect-'+(image_name)}.png", image_with_rect)
+    cv2.imwrite(f"realworld/patch_res/{'crop-' + image_name}.png", image_crop)
 
 
     # print(os.path.basename(path))
-    # pltImg(image_crop)
-    # pltImg(image_with_rect)
+
 
 
 
