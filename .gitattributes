@@ -1,2 +1,0 @@
-pretrained_model/faster-rcnn/epoch_12.pth filter=lfs diff=lfs merge=lfs -text
-pretrained_model/yolo3/epoch_12.pth filter=lfs diff=lfs merge=lfs -text

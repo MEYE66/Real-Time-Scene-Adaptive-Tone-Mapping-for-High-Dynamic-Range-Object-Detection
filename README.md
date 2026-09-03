@@ -93,60 +93,22 @@ output paths to your dataset before generating the final JSON files.
 
 ## 5. Pretrained Weights
 
-The repository provides three checkpoints under `pretrained_model/`. The two
-detector checkpoints are stored with Git LFS because they exceed GitHub's
-regular per-file size limit. After cloning the repository, install Git LFS and
-download the checkpoint contents with:
-
-```bash
-git lfs install
-git lfs pull --include="pretrained_model/**"
-```
-
-The checkpoint directory is organized as follows:
+The pretrained tone-mapper checkpoint is provided under `pretrained_model/`:
 
 ```text
 pretrained_model/
-|-- tmo_pre.pt
-|-- faster-rcnn/
-|   `-- epoch_12.pth
-`-- yolo3/
-    `-- epoch_12.pth
+`-- tmo_pre.pt
 ```
 
 | Model | Checkpoint | Size | SHA256 |
 | --- | --- | ---: | --- |
 | Tone mapper | `pretrained_model/tmo_pre.pt` | 456 KiB | `09b8d543d98469e38239d77e0dc700291bc071438b950071f4623b310bc95c73` |
-| Faster R-CNN | `pretrained_model/faster-rcnn/epoch_12.pth` | 321 MiB | `73a8dec41662674380aa1ae3b93a9adf619683f8d508067bd66c5f5aa7edb100` |
-| YOLOv3 | `pretrained_model/yolo3/epoch_12.pth` | 475 MiB | `7f4f6799e89bc6aa414e5ff3db9a14c3dd1db9aa72a494934941b30fc31c5448` |
 
 `tmo_pre.pt` is the tone-mapper pretraining checkpoint obtained with the NLPD
 loss. The tone-mapper implementation is based on
 [TMO_CAN](https://github.com/leshier/TMO_CAN). Set the checkpoint path used by
 `logCANBaseResNet` to `pretrained_model/tmo_pre.pt` before training or
 fine-tuning.
-
-The Faster R-CNN checkpoint can be evaluated with:
-
-```bash
-python tools/test.py \
-    configs/_baseline_raw/faster_rcnn_r50_fpn_1x.py \
-    pretrained_model/faster-rcnn/epoch_12.pth
-```
-
-The YOLOv3 checkpoint can be evaluated with:
-
-```bash
-python tools/test.py \
-    configs/_baseline_raw/yolov3_d53_coco.py \
-    pretrained_model/yolo3/epoch_12.pth
-```
-
-The configuration files currently define their own `load_from` values. For
-training or resuming from one of the detector checkpoints, update `load_from`
-to the corresponding path above. Passing a checkpoint directly to
-`tools/test.py`, as shown in the examples, overrides the need to edit
-`load_from` for evaluation.
 
 ## 6. Training
 
