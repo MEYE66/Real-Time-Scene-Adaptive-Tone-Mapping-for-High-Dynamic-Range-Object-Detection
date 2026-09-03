@@ -1,7 +1,6 @@
-# Real-Time Scene-Adaptive Tone Mapping for High-Dynamic Range Object Detection
+# Real-Time Scene-Adaptive Tone Mapping for High-Dynamic Range Object Detection [NIPS205]
 
-This repository contains the implementation of our scene-adaptive tone mapping
-method for high-dynamic-range (HDR) object detection.
+This repository contains the implementation of Real-Time Scene-Adaptive Tone Mapping for High-Dynamic Range Object Detection.
 ## 1. Summary
 Gongzhe Li, Linwei Qiu, Peibei Cao, Fengying Xie, Xiangyang Ji, and Qilin Sun. [Paper](https://proceedings.neurips.cc/paper_files/paper/2025/file/8c83381162f247df48f101b3aaa7c440-Paper-Conference.pdf)
 
