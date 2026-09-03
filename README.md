@@ -1,4 +1,4 @@
-# Real-Time Scene-Adaptive Tone Mapping for High-Dynamic Range Object Detection [NIPS205]
+# Real-Time Scene-Adaptive Tone Mapping for High-Dynamic Range Object Detection [NIPS 2025]
 
 This repository contains the implementation of Real-Time Scene-Adaptive Tone Mapping for High-Dynamic Range Object Detection.
 ## 1. Summary
