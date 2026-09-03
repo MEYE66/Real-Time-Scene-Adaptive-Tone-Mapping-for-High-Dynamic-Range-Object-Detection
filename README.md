@@ -1,9 +1,7 @@
 # Real-Time Scene-Adaptive Tone Mapping for High-Dynamic Range Object Detection
 
 This repository contains the implementation of our scene-adaptive tone mapping
-method for high-dynamic-range (HDR) object detection. The detection pipeline is
-built on [MMDetection](https://github.com/open-mmlab/mmdetection).
-
+method for high-dynamic-range (HDR) object detection. 
 ## 1. Authors
 
 Gongzhe Li, Linwei Qiu, Peibei Cao, Fengying Xie, Xiangyang Ji, and Qilin Sun.
@@ -15,10 +13,11 @@ Gongzhe Li, Linwei Qiu, Peibei Cao, Fengying Xie, Xiangyang Ji, and Qilin Sun.
 
 ## 3. Requirements
 
-This project is implemented as an extension of
-[MMDetection](https://github.com/open-mmlab/mmdetection). Before using this
-code, install MMDetection and its compatible dependencies, including PyTorch,
-MMCV, and MMEngine, by following the official installation instructions.
+
+The detection pipeline is
+built on [MMDetection](https://github.com/open-mmlab/mmdetection).
+Use the PyTorch, MMCV, MMEngine, and MMDetection versions compatible with the local
+environment.
 
 ## 4. Dataset Preparation
 
@@ -49,7 +48,7 @@ The annotation labels used by the provided dataset configuration are:
 The offline RAW preprocessing pipeline performs 24-bit RAW decoding,
 demosaicing, resizing to `1280 x 1280`, and Gray-World white balancing. The
 implementation is in [preprocessing/parse_raw.py](preprocessing/parse_raw.py).
-It expects the input directory to end in `00Train` and writes the processed
+It expects the input directory to end in `00Train/01Valid` and writes the processed
 files to a sibling directory named `RAW`.
 
 For example:
@@ -73,8 +72,6 @@ in the selected dataset configuration:
 ./dataset/
 |-- train.json
 |-- val.json
-|-- train/          # processed training images
-|-- val/            # processed validation images
 ```
 
 `train.json` and `val.json` must contain `images`, `annotations`, and
@@ -86,31 +83,19 @@ output paths to your dataset before generating the final JSON files.
 
 ## 5. Pretrained Weights
 
-The pretrained tone-mapper checkpoint is included in this repository:
+The pretrained tone-mapper checkpoint is provided under `pretrained_model/`:
+And the whold model (with detector) weigths is in https://drive.google.com/drive/folders/1NVflxRPlnr1naFMG_EXgVjm1M85G9Jmm?usp=sharing:
 
 ```text
 pretrained_model/
 `-- tmo_pre.pt
 ```
 
-| Model | Checkpoint | Size | SHA256 |
-| --- | --- | ---: | --- |
-| Tone mapper | `pretrained_model/tmo_pre.pt` | 456 KiB | `09b8d543d98469e38239d77e0dc700291bc071438b950071f4623b310bc95c73` |
-
 `tmo_pre.pt` is the tone-mapper pretraining checkpoint obtained with the NLPD
 loss. The tone-mapper implementation is based on
 [TMO_CAN](https://github.com/leshier/TMO_CAN). Set the checkpoint path used by
 `logCANBaseResNet` to `pretrained_model/tmo_pre.pt` before training or
 fine-tuning.
-
-Complete detector checkpoints for **Faster R-CNN** and **YOLOv3** are available
-on [Google Drive](https://drive.google.com/drive/folders/1NVflxRPlnr1naFMG_EXgVjm1M85G9Jmm?usp=sharing). They are organized as follows:
-
-```text
-pretrained_model/
-|-- faster r-cnn/
-`-- yolov3/
-```
 
 ## 6. Training
 
@@ -139,7 +124,7 @@ CUDA_VISIBLE_DEVICES=0,1 bash tools/dist_train.sh \
 
 ## 8. Citation
 
-If you find our work helpful, please cite the following paper.
+If you find our work helpful, please cite the following paper. If you meet some problems when using our code, please feel free to contact me (gongzheli1@link.cuhk.edu.cn).
 ```text
 @InProceedings{li2025realtime,
 title={Real-Time Scene-Adaptive Tone Mapping for High-Dynamic Range Object Detection},
