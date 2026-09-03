@@ -668,7 +668,7 @@ class ResNet(BaseModule):
                     m.eval()
 
 
-# @MODELS.register_module()
+@MODELS.register_module()
 class ResNetV1d(ResNet):
     r"""ResNetV1d variant described in `Bag of Tricks
     <https://arxiv.org/pdf/1812.01187.pdf>`_.
@@ -722,27 +722,11 @@ class logCANBaseResNet(ResNet):
     def __init__(self,  **kwargs):
         super(logCANBaseResNet, self).__init__(**kwargs)
         self.isp_preprocessor = tmo.logCANTMO_base()
-        # state_dict = torch.load("/home/ligongzhe/ckpt/ada_canlog-00019.pt")['state_dict']
-        # self.isp_preprocessor.load_state_dict(state_dict, strict=False)
+        state_dict = torch.load("your_path/tmo_pre.pt")['state_dict']
+        self.isp_preprocessor.load_state_dict(state_dict, strict=False)
     def forward(self, x):
         out = self.isp_preprocessor(x)
         out = super(logCANBaseResNet, self).forward(out)
         return out
-
-# torch.autograd.set_detect_anomaly(True)
-@MODELS.register_module()
-class logCANResizeResNet(ResNet):
-    def __init__(self,  **kwargs):
-        super(logCANResizeResNet, self).__init__(**kwargs)
-        self.isp_preprocessor = tmo.logSCANTMO_resize()
-        state_dict = torch.load("/home/ligongzhe/ckpt/ada_canlog-00019.pt")['state_dict']
-        self.isp_preprocessor.load_state_dict(state_dict, strict=False)
-
-    def forward(self, x):
-        out = self.isp_preprocessor(x)
-        out = super(logCANResizeResNet, self).forward(out)
-        return out
-
-
 
 
