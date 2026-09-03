@@ -15,17 +15,10 @@ Gongzhe Li, Linwei Qiu, Peibei Cao, Fengying Xie, Xiangyang Ji, and Qilin Sun.
 
 ## 3. Requirements
 
-Install the dependencies listed in `requirements.txt`, then install this
-repository in editable mode from its root directory:
-
-```bash
-pip install -r requirements.txt
-pip install -v -e .
-```
-
-Training and inference require PyTorch installation. Use the
-PyTorch, MMCV, MMEngine, and MMDetection versions compatible with the local
-environment.
+This project is implemented as an extension of
+[MMDetection](https://github.com/open-mmlab/mmdetection). Before using this
+code, install MMDetection and its compatible dependencies, including PyTorch,
+MMCV, and MMEngine, by following the official installation instructions.
 
 ## 4. Dataset Preparation
 
@@ -93,7 +86,7 @@ output paths to your dataset before generating the final JSON files.
 
 ## 5. Pretrained Weights
 
-The pretrained tone-mapper checkpoint is provided under `pretrained_model/`:
+The pretrained tone-mapper checkpoint is included in this repository:
 
 ```text
 pretrained_model/
@@ -109,6 +102,15 @@ loss. The tone-mapper implementation is based on
 [TMO_CAN](https://github.com/leshier/TMO_CAN). Set the checkpoint path used by
 `logCANBaseResNet` to `pretrained_model/tmo_pre.pt` before training or
 fine-tuning.
+
+Complete detector checkpoints for **Faster R-CNN** and **YOLOv3** are available
+on [Google Drive](https://drive.google.com/drive/folders/1NVflxRPlnr1naFMG_EXgVjm1M85G9Jmm?usp=sharing). They are organized as follows:
+
+```text
+pretrained_model/
+|-- faster r-cnn/
+`-- yolov3/
+```
 
 ## 6. Training
 
