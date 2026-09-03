@@ -1,17 +1,24 @@
 # Real-Time Scene-Adaptive Tone Mapping for High-Dynamic Range Object Detection
 
 This repository contains the implementation of our scene-adaptive tone mapping
-method for high-dynamic-range (HDR) object detection. 
-## 1. Authors
+method for high-dynamic-range (HDR) object detection.
+## 1. Summary
+Gongzhe Li, Linwei Qiu, Peibei Cao, Fengying Xie, Xiangyang Ji, and Qilin Sun. [Paper](https://proceedings.neurips.cc/paper_files/paper/2025/file/8c83381162f247df48f101b3aaa7c440-Paper-Conference.pdf)
 
-Gongzhe Li, Linwei Qiu, Peibei Cao, Fengying Xie, Xiangyang Ji, and Qilin Sun.
+Abstract:
 
-## 2. Downloads
 
-- [Paper](https://proceedings.neurips.cc/paper_files/paper/2025/file/8c83381162f247df48f101b3aaa7c440-Paper-Conference.pdf)
-- [Dataset](https://openi.pcl.ac.cn/innovation_contest/innov202305091731448/datasets?lang=en-US)
+High dynamic range (HDR) images, with their rich tone and detail reproduction, hold significant potential to enhance computer vision systems, particularly in autonomous driving. However, most neural networks for embedded vision are trained on low dynamic range (LDR) inputs and suffer substantial performance degradation when handling high-bit-depth HDR images due to the challenges posed by extreme dynamic ranges. In this paper, we propose a novel tone mapping method that not only bridges the gap between HDR RAW inputs and the LDR sRGB requirements of detection networks but also achieves end-to-end optimization with the downstream tasks. Instead of relying on traditional image signal processing (ISP) pipeline, we introduce neural photometric calibration to regularize dynamic ranges and a scaling-invariant local tone mapping module to preserve image details. In addition, our architecture also supports performance transfer finetuning, enabling efficient adaptation from the LDR model to the HDR RAW model with minimal cost. The proposed method outperforms traditional tone mapping algorithms and advanced AI-ISP methods in challenging automotive HDR scenes. Moreover, our pipeline achieves real-time processing of 4K high-bit-depth HDR inputs on the Nvidia Jetson platform.
 
-## 3. Requirements
+Key Idea:
+
+Tone mapping compresses dynamic range while preserving or enhancing local
+details. For human viewing, it typically relies on perceptual priors to produce
+visually pleasing results. For machine vision, however, we reduce such priors
+to preserve a broader LDR solution space. This motivates our use of a
+scale-invariant CNN as a local tone mapper with minimal handcrafted priors.
+
+## 2. Requirements
 
 
 The detection pipeline is
@@ -19,11 +26,11 @@ built on [MMDetection](https://github.com/open-mmlab/mmdetection).
 Use the PyTorch, MMCV, MMEngine, and MMDetection versions compatible with the local
 environment.
 
-## 4. Dataset Preparation
+## 3. Dataset Preparation
 
-### 4.1 Original dataset layout
+### 3.1 Original dataset layout
 
-Arrange the downloaded data as follows. Each RAW file and annotation file must
+Arrange the downloaded [Dataset](https://openi.pcl.ac.cn/innovation_contest/innov202305091731448/datasets?lang=en-US) as follows. Each RAW file and annotation file must
 have the same basename.
 
 ```text
@@ -43,7 +50,7 @@ ${DATA_PATH}/
 The annotation labels used by the provided dataset configuration are:
 `Pedestrian`, `Car`, `Cyclist`, `Tram`, `Tricycle`, and `Truck`.
 
-### 4.2 RAW preprocessing
+### 3.2 RAW preprocessing
 
 The offline RAW preprocessing pipeline performs 24-bit RAW decoding,
 demosaicing, resizing to `1280 x 1280`, and Gray-World white balancing. The
@@ -62,7 +69,7 @@ python preprocessing/parse_raw.py \
 The script uses CUDA for demosaicing. Make sure the processed file extension
 matches the `file_name` values in the COCO annotation files.
 
-### 4.3 Annotation format
+### 3.3 Annotation format
 
 The detector consumes COCO-style JSON files. Place the final annotation files
 at the repository-relative paths below, or update `data_root` and `ann_file`
@@ -81,7 +88,7 @@ for LabelMe-style annotations is available in
 [preprocessing/parse_anno.py](preprocessing/parse_anno.py); adapt its input and
 output paths to your dataset before generating the final JSON files.
 
-## 5. Pretrained Weights
+## 4. Pretrained Weights
 
 The pretrained tone-mapper checkpoint is provided under `pretrained_model/`:
 And the whold model (with detector) weigths is in https://drive.google.com/drive/folders/1NVflxRPlnr1naFMG_EXgVjm1M85G9Jmm?usp=sharing:
@@ -97,7 +104,7 @@ loss. The tone-mapper implementation is based on
 `logCANBaseResNet` to `pretrained_model/tmo_pre.pt` before training or
 fine-tuning.
 
-## 6. Training
+## 5. Training
 
 Before running a job, update `data_root`, `data_prefix`, and `ann_file` in the
 dataset base configuration used by the selected model. For the RAW detector,
@@ -122,7 +129,7 @@ CUDA_VISIBLE_DEVICES=0,1 bash tools/dist_train.sh \
 ```
 
 
-## 8. Citation
+## 6. Citation
 
 If you find our work helpful, please cite the following paper. If you meet some problems when using our code, please feel free to contact me (gongzheli1@link.cuhk.edu.cn).
 ```text
